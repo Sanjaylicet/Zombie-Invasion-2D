@@ -82,8 +82,8 @@ class MainMenuScene extends Phaser.Scene {
     }
     preload() {
         this.load.image('menu_bg', 'assets/totalassets/png/Tiles/BGTile (1).png');
-        this.load.image('menu_panel', 'assets/menu/png/Windows.png');
-        this.load.image('menu_button', 'assets/menu/png/Button.png');
+        this.load.image('menu_panel', 'assets/menu/png/window_sliced.png');
+        this.load.image('menu_button', 'assets/menu/png/button_sliced.png');
     }
     create() {
         // Tiled menu background
@@ -118,6 +118,8 @@ class MainMenuScene extends Phaser.Scene {
         
         // --- Play Button ---
         const playBtnBg = this.add.image(320, 175, 'menu_button').setDisplaySize(200, 52);
+        playBtnBg.baseScaleX = playBtnBg.scaleX;
+        playBtnBg.baseScaleY = playBtnBg.scaleY;
         playBtnBg.setInteractive({ useHandCursor: true });
         
         const playText = this.add.text(320, 175, 'PLAY GAME', {
@@ -136,16 +138,20 @@ class MainMenuScene extends Phaser.Scene {
         
         playBtnBg.on('pointerover', () => {
             playBtnBg.setTint(0x88ff88);
-            this.tweens.add({ targets: [playBtnBg, playText], scaleX: 1.06, scaleY: 1.06, duration: 100 });
+            this.tweens.add({ targets: playBtnBg, scaleX: playBtnBg.baseScaleX * 1.06, scaleY: playBtnBg.baseScaleY * 1.06, duration: 100 });
+            this.tweens.add({ targets: playText, scaleX: 1.06, scaleY: 1.06, duration: 100 });
         });
         
         playBtnBg.on('pointerout', () => {
             playBtnBg.clearTint();
-            this.tweens.add({ targets: [playBtnBg, playText], scaleX: 1.0, scaleY: 1.0, duration: 100 });
+            this.tweens.add({ targets: playBtnBg, scaleX: playBtnBg.baseScaleX, scaleY: playBtnBg.baseScaleY, duration: 100 });
+            this.tweens.add({ targets: playText, scaleX: 1.0, scaleY: 1.0, duration: 100 });
         });
         
         // --- Level Select Button ---
         const selectBtnBg = this.add.image(320, 245, 'menu_button').setDisplaySize(200, 52);
+        selectBtnBg.baseScaleX = selectBtnBg.scaleX;
+        selectBtnBg.baseScaleY = selectBtnBg.scaleY;
         selectBtnBg.setInteractive({ useHandCursor: true });
         
         const selectText = this.add.text(320, 245, 'LEVEL SELECT', {
@@ -163,12 +169,14 @@ class MainMenuScene extends Phaser.Scene {
         
         selectBtnBg.on('pointerover', () => {
             selectBtnBg.setTint(0x88ccff);
-            this.tweens.add({ targets: [selectBtnBg, selectText], scaleX: 1.06, scaleY: 1.06, duration: 100 });
+            this.tweens.add({ targets: selectBtnBg, scaleX: selectBtnBg.baseScaleX * 1.06, scaleY: selectBtnBg.baseScaleY * 1.06, duration: 100 });
+            this.tweens.add({ targets: selectText, scaleX: 1.06, scaleY: 1.06, duration: 100 });
         });
         
         selectBtnBg.on('pointerout', () => {
             selectBtnBg.clearTint();
-            this.tweens.add({ targets: [selectBtnBg, selectText], scaleX: 1.0, scaleY: 1.0, duration: 100 });
+            this.tweens.add({ targets: selectBtnBg, scaleX: selectBtnBg.baseScaleX, scaleY: selectBtnBg.baseScaleY, duration: 100 });
+            this.tweens.add({ targets: selectText, scaleX: 1.0, scaleY: 1.0, duration: 100 });
         });
     }
     
@@ -194,7 +202,7 @@ class LevelSelectScene extends Phaser.Scene {
         this.bg = this.add.tileSprite(320, 180, 640, 360, 'menu_bg');
         this.bg.setAlpha(0.35);
         
-        // Frame Panel (using assets/menu/png/Windows.png)
+        // Frame Panel (using assets/menu/png/window_sliced.png)
         this.panel = this.add.image(320, 190, 'menu_panel').setDisplaySize(540, 280);
         
         // Header Title
@@ -209,6 +217,8 @@ class LevelSelectScene extends Phaser.Scene {
         
         // Back to Main Menu Button at the bottom
         const backBtnBg = this.add.image(320, 310, 'menu_button').setDisplaySize(180, 44);
+        backBtnBg.baseScaleX = backBtnBg.scaleX;
+        backBtnBg.baseScaleY = backBtnBg.scaleY;
         backBtnBg.setInteractive({ useHandCursor: true });
         
         const backText = this.add.text(320, 310, '◄ MENU', {
@@ -226,12 +236,14 @@ class LevelSelectScene extends Phaser.Scene {
         
         backBtnBg.on('pointerover', () => {
             backBtnBg.setTint(0xffaa55);
-            this.tweens.add({ targets: [backBtnBg, backText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+            this.tweens.add({ targets: backBtnBg, scaleX: backBtnBg.baseScaleX * 1.05, scaleY: backBtnBg.baseScaleY * 1.05, duration: 80 });
+            this.tweens.add({ targets: backText, scaleX: 1.05, scaleY: 1.05, duration: 80 });
         });
         
         backBtnBg.on('pointerout', () => {
             backBtnBg.clearTint();
-            this.tweens.add({ targets: [backBtnBg, backText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+            this.tweens.add({ targets: backBtnBg, scaleX: backBtnBg.baseScaleX, scaleY: backBtnBg.baseScaleY, duration: 80 });
+            this.tweens.add({ targets: backText, scaleX: 1.0, scaleY: 1.0, duration: 80 });
         });
         
         this.currentTab = 0; 
@@ -368,7 +380,7 @@ class PlatformerScene extends Phaser.Scene {
         this.load.image('tile_8', 'assets/totalassets/png/Tiles/Tile (8).png');
         this.load.image('tile_14', 'assets/totalassets/png/Tiles/Tile (14).png');
         this.load.image('barrel', 'assets/totalassets/png/Objects/Barrel (1).png');
-        this.load.image('menu_button', 'assets/menu/png/Button.png');
+        this.load.image('menu_button', 'assets/menu/png/button_sliced.png');
         // --- Load Hero Animation Frames ---
         for (let i = 1; i <= 10; i++) {
             this.load.image(`hero_idle_${i}`, `assets/hero/Idle (${i}).png`);
@@ -821,6 +833,8 @@ class PlatformerScene extends Phaser.Scene {
             
             // --- Resume Button ---
             this.resumeBtn = this.add.image(320, 155, 'menu_button').setDisplaySize(180, 44).setDepth(201);
+            this.resumeBtn.baseScaleX = this.resumeBtn.scaleX;
+            this.resumeBtn.baseScaleY = this.resumeBtn.scaleY;
             this.resumeBtn.setInteractive({ useHandCursor: true });
             this.resumeText = this.add.text(320, 155, 'RESUME', {
                 fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
@@ -829,15 +843,19 @@ class PlatformerScene extends Phaser.Scene {
             this.resumeBtn.on('pointerdown', () => this.togglePause());
             this.resumeBtn.on('pointerover', () => {
                 this.resumeBtn.setTint(0x88ff88);
-                this.tweens.add({ targets: [this.resumeBtn, this.resumeText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+                this.tweens.add({ targets: this.resumeBtn, scaleX: this.resumeBtn.baseScaleX * 1.05, scaleY: this.resumeBtn.baseScaleY * 1.05, duration: 80 });
+                this.tweens.add({ targets: this.resumeText, scaleX: 1.05, scaleY: 1.05, duration: 80 });
             });
             this.resumeBtn.on('pointerout', () => {
                 this.resumeBtn.clearTint();
-                this.tweens.add({ targets: [this.resumeBtn, this.resumeText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+                this.tweens.add({ targets: this.resumeBtn, scaleX: this.resumeBtn.baseScaleX, scaleY: this.resumeBtn.baseScaleY, duration: 80 });
+                this.tweens.add({ targets: this.resumeText, scaleX: 1.0, scaleY: 1.0, duration: 80 });
             });
             
             // --- Level Select Button ---
             this.lvlSelectBtn = this.add.image(320, 215, 'menu_button').setDisplaySize(180, 44).setDepth(201);
+            this.lvlSelectBtn.baseScaleX = this.lvlSelectBtn.scaleX;
+            this.lvlSelectBtn.baseScaleY = this.lvlSelectBtn.scaleY;
             this.lvlSelectBtn.setInteractive({ useHandCursor: true });
             this.lvlSelectText = this.add.text(320, 215, 'LEVEL SELECT', {
                 fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
@@ -849,15 +867,19 @@ class PlatformerScene extends Phaser.Scene {
             });
             this.lvlSelectBtn.on('pointerover', () => {
                 this.lvlSelectBtn.setTint(0x88ccff);
-                this.tweens.add({ targets: [this.lvlSelectBtn, this.lvlSelectText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+                this.tweens.add({ targets: this.lvlSelectBtn, scaleX: this.lvlSelectBtn.baseScaleX * 1.05, scaleY: this.lvlSelectBtn.baseScaleY * 1.05, duration: 80 });
+                this.tweens.add({ targets: this.lvlSelectText, scaleX: 1.05, scaleY: 1.05, duration: 80 });
             });
             this.lvlSelectBtn.on('pointerout', () => {
                 this.lvlSelectBtn.clearTint();
-                this.tweens.add({ targets: [this.lvlSelectBtn, this.lvlSelectText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+                this.tweens.add({ targets: this.lvlSelectBtn, scaleX: this.lvlSelectBtn.baseScaleX, scaleY: this.lvlSelectBtn.baseScaleY, duration: 80 });
+                this.tweens.add({ targets: this.lvlSelectText, scaleX: 1.0, scaleY: 1.0, duration: 80 });
             });
             
             // --- Main Menu Button ---
             this.mainMenuBtn = this.add.image(320, 275, 'menu_button').setDisplaySize(180, 44).setDepth(201);
+            this.mainMenuBtn.baseScaleX = this.mainMenuBtn.scaleX;
+            this.mainMenuBtn.baseScaleY = this.mainMenuBtn.scaleY;
             this.mainMenuBtn.setInteractive({ useHandCursor: true });
             this.mainMenuText = this.add.text(320, 275, 'MAIN MENU', {
                 fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
@@ -869,11 +891,13 @@ class PlatformerScene extends Phaser.Scene {
             });
             this.mainMenuBtn.on('pointerover', () => {
                 this.mainMenuBtn.setTint(0xffaa55);
-                this.tweens.add({ targets: [this.mainMenuBtn, this.mainMenuText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+                this.tweens.add({ targets: this.mainMenuBtn, scaleX: this.mainMenuBtn.baseScaleX * 1.05, scaleY: this.mainMenuBtn.baseScaleY * 1.05, duration: 80 });
+                this.tweens.add({ targets: this.mainMenuText, scaleX: 1.05, scaleY: 1.05, duration: 80 });
             });
             this.mainMenuBtn.on('pointerout', () => {
                 this.mainMenuBtn.clearTint();
-                this.tweens.add({ targets: [this.mainMenuBtn, this.mainMenuText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+                this.tweens.add({ targets: this.mainMenuBtn, scaleX: this.mainMenuBtn.baseScaleX, scaleY: this.mainMenuBtn.baseScaleY, duration: 80 });
+                this.tweens.add({ targets: this.mainMenuText, scaleX: 1.0, scaleY: 1.0, duration: 80 });
             });
         } else {
             this.isPaused = false;

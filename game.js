@@ -367,6 +367,24 @@ class LevelSelectScene extends Phaser.Scene {
                        btn.setStyle({ fill: '#ffffff', backgroundColor: bgColor });
                        btn.setAlpha(1.0);
                    });
+            } else {
+                btnBg.setInteractive({ useHandCursor: true });
+                btn.setInteractive({ useHandCursor: true })
+                   .on('pointerdown', () => {
+                       this.watchAdToUnlockLevel(l);
+                   })
+                   .on('pointerover', () => {
+                       btnBg.setTint(0xffffff);
+                       btnBg.setAlpha(0.8);
+                       btn.setStyle({ fill: '#ffff00', backgroundColor: '#bb3333' });
+                       btn.setAlpha(0.8);
+                   })
+                   .on('pointerout', () => {
+                       btnBg.setTint(0x555555);
+                       btnBg.setAlpha(1.0);
+                       btn.setStyle({ fill: txtColor, backgroundColor: bgColor });
+                       btn.setAlpha(1.0);
+                   });
             }
             this.buttonsGroup.add(btn);
             index++;
@@ -382,6 +400,28 @@ class LevelSelectScene extends Phaser.Scene {
         });
         this.buttonsGroup.clear(true, true);
         this.createLevelButtons();
+    }
+    watchAdToUnlockLevel(levelId) {
+        if (typeof PokiSDK !== 'undefined') {
+            PokiSDK.rewardedBreak().then((success) => {
+                if (success) {
+                    this.unlockLevel(levelId);
+                }
+            });
+        } else {
+            this.unlockLevel(levelId);
+        }
+    }
+    unlockLevel(levelId) {
+        try {
+            const currentHighest = parseInt(localStorage.getItem('PokiBonk_HighestLevel')) || 1;
+            if (levelId > currentHighest) {
+                localStorage.setItem('PokiBonk_HighestLevel', levelId.toString());
+            }
+            this.refreshUI();
+        } catch (e) {
+            console.warn("Storage exception on unlock", e);
+        }
     }
 }
 // --- Gameplay Scene ---

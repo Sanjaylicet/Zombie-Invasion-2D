@@ -370,8 +370,9 @@ class PlatformerScene extends Phaser.Scene {
         this.spawnEvent = this.time.addEvent({
             delay: levelConfig.spawnRate,
             callback: () => {
-                if (this.totalSpawnsCount < levelConfig.targetKills && 
-                    this.enemies.countActive(true) < levelConfig.maxEnemies && 
+                const activeCount = this.enemies.countActive(true);
+                if (this.killsCount + activeCount < levelConfig.targetKills && 
+                    activeCount < levelConfig.maxEnemies && 
                     !this.isGameOver && !this.isLevelComplete) {
                     const point = Phaser.Utils.Array.GetRandom(levelConfig.spawnPoints);
                     this.spawnEnemy(point.x, point.y);
@@ -381,10 +382,10 @@ class PlatformerScene extends Phaser.Scene {
             loop: true
         });
         // Spawn initially from both corners
-        if (levelConfig.spawnPoints.length > 0 && this.totalSpawnsCount < levelConfig.targetKills) {
+        if (levelConfig.spawnPoints.length > 0 && this.killsCount + this.enemies.countActive(true) < levelConfig.targetKills) {
             this.spawnEnemy(levelConfig.spawnPoints[0].x, levelConfig.spawnPoints[0].y);
         }
-        if (levelConfig.spawnPoints.length > 1 && this.totalSpawnsCount < levelConfig.targetKills) {
+        if (levelConfig.spawnPoints.length > 1 && this.killsCount + this.enemies.countActive(true) < levelConfig.targetKills) {
             this.spawnEnemy(levelConfig.spawnPoints[1].x, levelConfig.spawnPoints[1].y);
         }
     }

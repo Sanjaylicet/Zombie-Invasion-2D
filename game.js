@@ -345,8 +345,8 @@ class PlatformerScene extends Phaser.Scene {
                 tnt.setDisplaySize(t.w, t.h + 8); 
                 this.tntBlocks.add(tnt);
                 
-                tnt.body.setSize(t.w, t.h);
-                tnt.body.setOffset(0, 4); 
+                tnt.body.setSize(t.w, 16);
+                tnt.body.setOffset(0, 0); 
                 
                 tnt.hitsRemaining = 5;
                 tnt.isBonked = false;
@@ -441,6 +441,7 @@ class PlatformerScene extends Phaser.Scene {
                 this.score += 100;
                 this.scoreText.setText('SCORE: ' + this.score);
                 this.createFloatingText(enemy.x, enemy.y, '+100');
+                this.incrementKills();
             } else if (!enemy.isStunned && !enemy.isKicked) {
                 this.handlePlayerHit(enemy);
             }
@@ -659,7 +660,6 @@ class PlatformerScene extends Phaser.Scene {
             if (enemy.isKicked) {
                 if (enemy.x < -100 || enemy.x > this.sys.game.config.width + 100 || enemy.y > this.sys.game.config.height + 100) {
                     enemy.destroy(); 
-                    this.incrementKills(); 
                 }
                 return; 
             }

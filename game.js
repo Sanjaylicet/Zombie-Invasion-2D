@@ -11,7 +11,7 @@ function getLevelConfig(levelId) {
     let bgKey = 'bg_tile_1';
     let tileKey = 'tile_2';
     let worldName = 'Green Valley';
-    
+
     if (levelId > 38) {
         bgKey = 'bg_tile_3';
         tileKey = 'tile_5';
@@ -28,12 +28,12 @@ function getLevelConfig(levelId) {
     const targetKills = 5 + levelId * 2;
     const maxEnemies = Math.min(4 + Math.floor(levelId / 5), 10);
     const spawnRate = Math.max(4000 - levelId * 60, 1500);
-    
+
     // Slower initial speed to make it highly playable
     const enemySpeed = 50 + Math.min(levelId * 2, 60);
     const platforms = [];
     const tntBlocks = [];
-    
+
     const pseudoRandom = (offset) => {
         const x = Math.sin(levelId * 100 + offset) * 10000;
         return x - Math.floor(x);
@@ -355,9 +355,10 @@ class PlatformerScene extends Phaser.Scene {
         this.killsCount = 0;
         this.totalSpawnsCount = 0;
         this.levelConfig = getLevelConfig(this.currentLevelId);
-        
+
         this.isGameOver = false;
         this.isLevelComplete = false;
+        this.isPaused = false;
     }
     preload() {
         // --- Load Environment & Tile Assets ---
@@ -370,6 +371,7 @@ class PlatformerScene extends Phaser.Scene {
         this.load.image('tile_8', 'assets/totalassets/png/Tiles/Tile (8).png');
         this.load.image('tile_14', 'assets/totalassets/png/Tiles/Tile (14).png');
         this.load.image('barrel', 'assets/totalassets/png/Objects/Barrel (1).png');
+        this.load.image('menu_button', 'assets/menu/png/Button.png');
         // --- Load Hero Animation Frames ---
         for (let i = 1; i <= 10; i++) {
             this.load.image(`hero_idle_${i}`, `assets/hero/Idle (${i}).png`);
@@ -403,18 +405,18 @@ class PlatformerScene extends Phaser.Scene {
         this.MAX_SPEED_Y = 800;
         this.FRICTION = 1500;
         this.JUMP_VELOCITY = -500;
-        
+
         this.isGameOver = false;
         this.isInvulnerable = false;
         this.lives = 5;
         this.score = 0;
-        this.scoreText = this.add.text(16, 16, 'SCORE: 0', { 
-            fontSize: '22px', 
-            fill: '#ffffff', 
-            fontFamily: 'Courier', 
-            fontStyle: 'bold' 
+        this.scoreText = this.add.text(16, 16, 'SCORE: 0', {
+            fontSize: '22px',
+            fill: '#ffffff',
+            fontFamily: 'Courier',
+            fontStyle: 'bold'
         });
-        this.scoreText.setDepth(100); 
+        this.scoreText.setDepth(100);
         // Target Kills progress indicator in top center
         this.progressText = this.add.text(320, 20, `KILLS: 0 / ${this.levelConfig.targetKills}`, {
             fontSize: '22px',
@@ -424,14 +426,14 @@ class PlatformerScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.progressText.setDepth(100);
         // Lives indicator on top-right
-        this.livesText = this.add.text(624, 16, 'LIVES: ❤️❤️❤️❤️❤️', { 
-            fontSize: '22px', 
-            fill: '#ff3333', 
-            fontFamily: 'Courier', 
-            fontStyle: 'bold' 
+        this.livesText = this.add.text(624, 16, 'LIVES: ❤️❤️❤️❤️❤️', {
+            fontSize: '22px',
+            fill: '#ff3333',
+            fontFamily: 'Courier',
+            fontStyle: 'bold'
         });
         this.livesText.setOrigin(1, 0);
-        this.livesText.setDepth(100); 
+        this.livesText.setDepth(100);
         // Display current level details
         this.worldNameText = this.add.text(16, 44, `${this.levelConfig.worldName} - Level ${this.currentLevelId}`, {
             fontSize: '13px',
@@ -463,8 +465,8 @@ class PlatformerScene extends Phaser.Scene {
         createAnim('enemy_male_idle', 'enemy_male_idle_', 15, 12);
         this.createLevel();
         this.createPlayer();
-        this.createEnemies(); 
-        
+        this.createEnemies();
+
         this.setupCollisions();
         this.setupInput();
     }
@@ -472,36 +474,36 @@ class PlatformerScene extends Phaser.Scene {
         const levelConfig = this.levelConfig;
         const highestLvl = this.getHighestLevel();
         console.log(`Poki Game Log: Launching Level ${this.currentLevelId} (Max Run: ${highestLvl})`);
-        this.saveLevelRecord(this.currentLevelId); 
+        this.saveLevelRecord(this.currentLevelId);
         if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStart();
         // Tiled Background
         this.bg = this.add.tileSprite(320, 180, 640, 360, levelConfig.bgKey);
         this.bg.setDepth(-10);
         // Tiled ground floor
         this.floor = this.add.tileSprite(320, 340, 640, 40, levelConfig.tileKey);
-        this.floor.setTileScale(0.15625, 0.15625); 
+        this.floor.setTileScale(0.15625, 0.15625);
         this.physics.add.existing(this.floor, true);
         this.floor.body.setSize(640, 40);
-        
+
         this.platforms = this.physics.add.staticGroup();
         levelConfig.platforms.forEach(p => {
             const plat = this.add.tileSprite(p.x, p.y, p.w, p.h, levelConfig.tileKey);
-            plat.setTileScale(0.0625, 0.0625); 
+            plat.setTileScale(0.0625, 0.0625);
             this.platforms.add(plat);
             plat.body.setSize(p.w, p.h);
-            
+
             plat.isBonked = false;
         });
         this.tntBlocks = this.physics.add.staticGroup();
         if (levelConfig.tntBlocks) {
             levelConfig.tntBlocks.forEach(t => {
                 const tnt = this.add.sprite(t.x, t.y, 'barrel');
-                tnt.setDisplaySize(t.w, t.h + 8); 
+                tnt.setDisplaySize(t.w, t.h + 8);
                 this.tntBlocks.add(tnt);
-                
+
                 tnt.body.setSize(t.w, 16);
-                tnt.body.setOffset(0, 0); 
-                
+                tnt.body.setOffset(0, 0);
+
                 tnt.hitsRemaining = 5;
                 tnt.isBonked = false;
             });
@@ -509,8 +511,8 @@ class PlatformerScene extends Phaser.Scene {
     }
     createPlayer() {
         this.player = this.physics.add.sprite(320, 300, 'hero_idle_1');
-        this.player.setScale(0.1); 
-        
+        this.player.setScale(0.1);
+
         this.player.body.setSize(320, 480);
         this.player.body.setOffset(174, 89);
         this.player.body.setCollideWorldBounds(true);
@@ -525,8 +527,8 @@ class PlatformerScene extends Phaser.Scene {
             delay: levelConfig.spawnRate,
             callback: () => {
                 const activeCount = this.enemies.countActive(true);
-                if (this.killsCount + activeCount < levelConfig.targetKills && 
-                    activeCount < levelConfig.maxEnemies && 
+                if (this.killsCount + activeCount < levelConfig.targetKills &&
+                    activeCount < levelConfig.maxEnemies &&
                     !this.isGameOver && !this.isLevelComplete) {
                     const point = Phaser.Utils.Array.GetRandom(levelConfig.spawnPoints);
                     this.spawnEnemy(point.x, point.y);
@@ -548,44 +550,44 @@ class PlatformerScene extends Phaser.Scene {
         const gender = Math.random() > 0.5 ? 'male' : 'female';
         const enemy = this.physics.add.sprite(x, y, `enemy_${gender}_idle_1`);
         enemy.gender = gender;
-        enemy.setScale(0.08); 
-        
+        enemy.setScale(0.08);
+
         // Custom 24x24 box aligned at enemy feet
         enemy.body.setSize(300, 300);
         enemy.body.setOffset(65, 219);
-        
+
         enemy.body.setMaxVelocity(400, 800);
-        
+
         enemy.speedTier = 0;
         enemy.initialSpeed = this.levelConfig.enemySpeed;
         enemy.baseSpeed = enemy.initialSpeed;
         enemy.direction = x < 320 ? 1 : -1; // Walk inward from top corners
         enemy.isStunned = false;
         enemy.isKicked = false;
-        
+
         enemy.play(`enemy_${gender}_walk`);
-        
+
         this.enemies.add(enemy);
     }
     setupCollisions() {
         this.physics.add.collider(this.player, this.floor);
         this.physics.add.collider(this.player, this.platforms);
-        this.physics.add.collider(this.player, this.tntBlocks); 
-        
+        this.physics.add.collider(this.player, this.tntBlocks);
+
         this.physics.add.collider(this.enemies, this.floor);
         this.physics.add.collider(this.enemies, this.platforms);
         this.physics.add.collider(this.enemies, this.tntBlocks);
         this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
-            if (this.isGameOver || this.isLevelComplete) return; 
+            if (this.isGameOver || this.isLevelComplete) return;
             if (enemy.isStunned && !enemy.isKicked) {
                 enemy.isKicked = true;
-                if (enemy.stunEvent) enemy.stunEvent.remove(); 
-                
+                if (enemy.stunEvent) enemy.stunEvent.remove();
+
                 const kickDirection = player.x <= enemy.x ? 1 : -1;
                 enemy.body.setVelocityX(kickDirection * 500);
-                enemy.body.setVelocityY(-150); 
+                enemy.body.setVelocityY(-150);
                 enemy.body.checkCollision.none = true;
-                
+
                 this.tweens.add({
                     targets: enemy,
                     angle: 360 * kickDirection,
@@ -607,7 +609,7 @@ class PlatformerScene extends Phaser.Scene {
         this.tweens.add({
             targets: txt,
             y: y - 40,
-            alpha: 0, 
+            alpha: 0,
             duration: 1000,
             onComplete: () => txt.destroy()
         });
@@ -621,7 +623,7 @@ class PlatformerScene extends Phaser.Scene {
         } else {
             this.isInvulnerable = true;
             this.player.play('hero_hurt');
-            
+
             const bounceDir = this.player.x < enemy.x ? -1 : 1;
             this.player.body.setVelocityX(bounceDir * 300);
             this.player.body.setVelocityY(-350);
@@ -663,57 +665,58 @@ class PlatformerScene extends Phaser.Scene {
         this.saveLevelRecord(this.currentLevelId + 1);
         // Semitransparent dark overlay
         this.add.rectangle(320, 180, 640, 360, 0x000000, 0.75).setDepth(140);
-        this.victoryText = this.add.text(320, 130, 'LEVEL COMPLETED!', { 
-            fontSize: '44px', 
-            fill: '#00ff00', 
+        this.victoryText = this.add.text(320, 130, 'LEVEL COMPLETED!', {
+            fontSize: '44px',
+            fill: '#00ff00',
             fontStyle: 'bold',
             fontFamily: 'Courier'
         }).setOrigin(0.5).setDepth(150);
         const isLastLevel = this.currentLevelId >= 50;
         if (!isLastLevel) {
-            this.nextLevelBtn = this.add.text(320, 210, '► NEXT LEVEL', { 
-                fontSize: '24px', 
-                fill: '#ffff00', 
-                fontStyle: 'bold', 
+            this.nextLevelBtn = this.add.text(320, 210, '► NEXT LEVEL', {
+                fontSize: '24px',
+                fill: '#ffff00',
+                fontStyle: 'bold',
                 backgroundColor: '#000000aa',
                 fontFamily: 'Courier'
             })
+                .setOrigin(0.5)
+                .setPadding(8)
+                .setDepth(150)
+                .setInteractive({ useHandCursor: true })
+                .on('pointerdown', () => {
+                    this.scene.start('PlatformerScene', { levelId: this.currentLevelId + 1 });
+                });
+        } else {
+            this.victoryText.setText('GAME COMPLETED!');
+            this.victoryText.setStyle({ fill: '#ffcc00' });
+
+            this.add.text(320, 190, 'CONGRATULATIONS! YOU BEAT ALL 50 LEVELS!', {
+                fontSize: '18px',
+                fill: '#ffffff',
+                fontStyle: 'bold',
+                fontFamily: 'Courier'
+            }).setOrigin(0.5).setDepth(150);
+        }
+        this.menuBtn = this.add.text(320, isLastLevel ? 250 : 270, '► LEVEL SELECT', {
+            fontSize: '20px',
+            fill: '#ffffff',
+            fontStyle: 'bold',
+            backgroundColor: '#000000aa',
+            fontFamily: 'Courier'
+        })
             .setOrigin(0.5)
             .setPadding(8)
             .setDepth(150)
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
-                this.scene.start('PlatformerScene', { levelId: this.currentLevelId + 1 });
+                this.scene.start('LevelSelectScene');
             });
-        } else {
-            this.victoryText.setText('GAME COMPLETED!');
-            this.victoryText.setStyle({ fill: '#ffcc00' });
-            
-            this.add.text(320, 190, 'CONGRATULATIONS! YOU BEAT ALL 50 LEVELS!', { 
-                fontSize: '18px', 
-                fill: '#ffffff', 
-                fontStyle: 'bold',
-                fontFamily: 'Courier'
-            }).setOrigin(0.5).setDepth(150);
-        }
-        this.menuBtn = this.add.text(320, isLastLevel ? 250 : 270, '► LEVEL SELECT', { 
-            fontSize: '20px', 
-            fill: '#ffffff', 
-            fontStyle: 'bold', 
-            backgroundColor: '#000000aa',
-            fontFamily: 'Courier'
-        })
-        .setOrigin(0.5)
-        .setPadding(8)
-        .setDepth(150)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => {
-            this.scene.start('LevelSelectScene');
-        });
     }
     setupInput() {
         this.cursors = this.input.keyboard.createCursorKeys();
         this.isJumping = false;
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     }
     saveLevelRecord(levelIndex) {
         try {
@@ -725,7 +728,7 @@ class PlatformerScene extends Phaser.Scene {
             console.warn("Storage Exception (Incognito/Private enabled, skipping sync)", error);
         }
     }
-    
+
     getHighestLevel() {
         try {
             return parseInt(localStorage.getItem('PokiBonk_HighestLevel')) || 1;
@@ -765,7 +768,7 @@ class PlatformerScene extends Phaser.Scene {
     resumeWithExtraLife() {
         this.gameOverText.destroy();
         this.extraLifeBtn.destroy();
-        
+
         this.enemies.children.iterate((enemy) => {
             if (enemy && enemy.active) enemy.destroy();
         });
@@ -775,25 +778,141 @@ class PlatformerScene extends Phaser.Scene {
         this.physics.resume();
         this.tweens.resumeAll();
         if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStart();
-        
+
         this.player.play('hero_idle');
-        this.player.body.setVelocityY(-400); 
+        this.player.body.setVelocityY(-400);
     }
     update() {
-        if (this.isGameOver || this.isLevelComplete) return;
+        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            if (!this.isGameOver && !this.isLevelComplete) {
+                this.togglePause();
+            }
+        }
+        
+        if (this.isPaused || this.isGameOver || this.isLevelComplete) return;
         this.handlePlayerMovement();
         this.updatePlayerAnimations();
         this.checkBonkMechanic();
         this.updateEnemies();
     }
+    togglePause() {
+        if (!this.isPaused) {
+            this.isPaused = true;
+            this.physics.pause();
+            this.tweens.pauseAll();
+            if (this.spawnEvent) this.spawnEvent.paused = true;
+            
+            // Pause all animations
+            this.player.anims.pause();
+            this.enemies.children.iterate((enemy) => {
+                if (enemy && enemy.active) {
+                    enemy.anims.pause();
+                }
+            });
+            
+            // Create Pause UI
+            this.pauseOverlay = this.add.rectangle(320, 180, 640, 360, 0x000000, 0.75).setDepth(200);
+            
+            this.pauseTitle = this.add.text(320, 85, 'GAME PAUSED', {
+                fontSize: '28px',
+                fill: '#ffff00',
+                fontFamily: 'Courier',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5).setDepth(201);
+            
+            // --- Resume Button ---
+            this.resumeBtn = this.add.image(320, 155, 'menu_button').setDisplaySize(180, 44).setDepth(201);
+            this.resumeBtn.setInteractive({ useHandCursor: true });
+            this.resumeText = this.add.text(320, 155, 'RESUME', {
+                fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
+            }).setOrigin(0.5).setDepth(201);
+            
+            this.resumeBtn.on('pointerdown', () => this.togglePause());
+            this.resumeBtn.on('pointerover', () => {
+                this.resumeBtn.setTint(0x88ff88);
+                this.tweens.add({ targets: [this.resumeBtn, this.resumeText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+            });
+            this.resumeBtn.on('pointerout', () => {
+                this.resumeBtn.clearTint();
+                this.tweens.add({ targets: [this.resumeBtn, this.resumeText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+            });
+            
+            // --- Level Select Button ---
+            this.lvlSelectBtn = this.add.image(320, 215, 'menu_button').setDisplaySize(180, 44).setDepth(201);
+            this.lvlSelectBtn.setInteractive({ useHandCursor: true });
+            this.lvlSelectText = this.add.text(320, 215, 'LEVEL SELECT', {
+                fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
+            }).setOrigin(0.5).setDepth(201);
+            
+            this.lvlSelectBtn.on('pointerdown', () => {
+                if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStop();
+                this.scene.start('LevelSelectScene');
+            });
+            this.lvlSelectBtn.on('pointerover', () => {
+                this.lvlSelectBtn.setTint(0x88ccff);
+                this.tweens.add({ targets: [this.lvlSelectBtn, this.lvlSelectText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+            });
+            this.lvlSelectBtn.on('pointerout', () => {
+                this.lvlSelectBtn.clearTint();
+                this.tweens.add({ targets: [this.lvlSelectBtn, this.lvlSelectText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+            });
+            
+            // --- Main Menu Button ---
+            this.mainMenuBtn = this.add.image(320, 275, 'menu_button').setDisplaySize(180, 44).setDepth(201);
+            this.mainMenuBtn.setInteractive({ useHandCursor: true });
+            this.mainMenuText = this.add.text(320, 275, 'MAIN MENU', {
+                fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
+            }).setOrigin(0.5).setDepth(201);
+            
+            this.mainMenuBtn.on('pointerdown', () => {
+                if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStop();
+                this.scene.start('MainMenuScene');
+            });
+            this.mainMenuBtn.on('pointerover', () => {
+                this.mainMenuBtn.setTint(0xffaa55);
+                this.tweens.add({ targets: [this.mainMenuBtn, this.mainMenuText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+            });
+            this.mainMenuBtn.on('pointerout', () => {
+                this.mainMenuBtn.clearTint();
+                this.tweens.add({ targets: [this.mainMenuBtn, this.mainMenuText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+            });
+        } else {
+            this.isPaused = false;
+            
+            // Clean up UI
+            this.pauseOverlay.destroy();
+            this.pauseTitle.destroy();
+            this.resumeBtn.destroy();
+            this.resumeText.destroy();
+            this.lvlSelectBtn.destroy();
+            this.lvlSelectText.destroy();
+            this.mainMenuBtn.destroy();
+            this.mainMenuText.destroy();
+            
+            // Resume physics and spawning
+            this.physics.resume();
+            this.tweens.resumeAll();
+            if (this.spawnEvent) this.spawnEvent.paused = false;
+            
+            // Resume animations
+            this.player.anims.resume();
+            this.enemies.children.iterate((enemy) => {
+                if (enemy && enemy.active) {
+                    enemy.anims.resume();
+                }
+            });
+        }
+    }
     updatePlayerAnimations() {
         if (this.isGameOver) return;
-        
+
         if (this.isInvulnerable && this.player.anims.currentAnim && this.player.anims.currentAnim.key === 'hero_hurt' && !this.player.anims.currentFrame.isLast) {
             return;
         }
         const isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
-        
+
         if (!isGrounded) {
             this.player.play('hero_jump', true);
         } else if (Math.abs(this.player.body.velocity.x) > 10) {
@@ -810,34 +929,34 @@ class PlatformerScene extends Phaser.Scene {
     updateEnemies() {
         this.enemies.children.iterate((enemy) => {
             if (!enemy || !enemy.active) return;
-            
+
             if (enemy.isKicked) {
                 if (enemy.x < -100 || enemy.x > this.sys.game.config.width + 100 || enemy.y > this.sys.game.config.height + 100) {
-                    enemy.destroy(); 
+                    enemy.destroy();
                 }
-                return; 
+                return;
             }
             // --- Wrap-around bottom floor corners to top corners with speed boost ---
             const isOnFloor = enemy.body.blocked.down || enemy.body.touching.down;
-            if (isOnFloor && enemy.y > 300) { 
+            if (isOnFloor && enemy.y > 300) {
                 if (enemy.x < 45 || enemy.x > 595) {
                     const sp = Phaser.Utils.Array.GetRandom(this.levelConfig.spawnPoints);
                     enemy.x = sp.x;
                     enemy.y = sp.y;
                     enemy.body.setVelocityX(0);
                     enemy.body.setVelocityY(0);
-                    
+
                     // Boost Speed by 20% per tier, capping at 3 boosts (4 speed levels total!)
                     if (enemy.speedTier < 3) {
                         enemy.speedTier++;
                         enemy.baseSpeed = enemy.initialSpeed * Math.pow(1.20, enemy.speedTier);
-                    } 
-                    
+                    }
+
                     // Clear stun statuses
                     enemy.isStunned = false;
                     enemy.setFlipY(false);
                     if (enemy.stunEvent) enemy.stunEvent.remove();
-                    
+
                     enemy.direction = enemy.x < 320 ? 1 : -1; // Walk inward
                     enemy.play(`enemy_${enemy.gender}_walk`, true);
                     return;
@@ -856,15 +975,15 @@ class PlatformerScene extends Phaser.Scene {
                 }
             } else {
                 enemy.body.setVelocityX(0);
-                enemy.play(`enemy_${enemy.gender}_idle`, true); 
+                enemy.play(`enemy_${enemy.gender}_idle`, true);
             }
-            
+
             if (enemy.direction === 1) {
                 enemy.setFlipX(false);
             } else {
                 enemy.setFlipX(true);
             }
-            
+
             if (enemy.y > this.sys.game.config.height + 50) {
                 const levelConfig = this.levelConfig;
                 const sp = Phaser.Utils.Array.GetRandom(levelConfig.spawnPoints);
@@ -903,7 +1022,7 @@ class PlatformerScene extends Phaser.Scene {
                 if (platform && platform.active && !platform.isBonked) {
                     const isHorizontallyAligned = this.player.body.right > platform.body.left && this.player.body.left < platform.body.right;
                     const isTouchingBottom = Math.abs(this.player.body.top - platform.body.bottom) <= 12;
-                    
+
                     if (isHorizontallyAligned && isTouchingBottom) {
                         this.triggerBonk(platform, this.player.x, platform.body.bottom);
                     }
@@ -913,7 +1032,7 @@ class PlatformerScene extends Phaser.Scene {
                 if (tntBlock && tntBlock.active && !tntBlock.isBonked) {
                     const isHorizontallyAligned = this.player.body.right > tntBlock.body.left && this.player.body.left < tntBlock.body.right;
                     const isTouchingBottom = Math.abs(this.player.body.top - tntBlock.body.bottom) <= 12;
-                    
+
                     if (isHorizontallyAligned && isTouchingBottom) {
                         this.triggerTNT(tntBlock);
                     }
@@ -937,7 +1056,7 @@ class PlatformerScene extends Phaser.Scene {
         this.tweens.add({
             targets: shockwave,
             alpha: 0,
-            scale: 20, 
+            scale: 20,
             duration: 500,
             onComplete: () => shockwave.destroy()
         });
@@ -951,7 +1070,7 @@ class PlatformerScene extends Phaser.Scene {
         if (tntBlock.hitsRemaining > 0) {
             // Apply red damage color tint and shake it
             tntBlock.setTint(0xff8888);
-            
+
             this.tweens.add({
                 targets: tntBlock,
                 y: tntBlock.y - 6,
@@ -970,24 +1089,24 @@ class PlatformerScene extends Phaser.Scene {
             this.tweens.add({
                 targets: finalShockwave,
                 alpha: 0,
-                scale: 30, 
+                scale: 30,
                 duration: 700,
                 onComplete: () => finalShockwave.destroy()
             });
-            
+
             this.cameras.main.shake(200, 0.02);
             tntBlock.destroy();
         }
     }
     triggerBonk(platform, impactX, impactY) {
         platform.isBonked = true;
-        
+
         const originalY = platform.y;
         this.tweens.add({
             targets: platform,
-            y: originalY - 4, 
+            y: originalY - 4,
             duration: 60,
-            yoyo: true, 
+            yoyo: true,
             onComplete: () => {
                 platform.y = originalY;
                 platform.isBonked = false;
@@ -999,19 +1118,19 @@ class PlatformerScene extends Phaser.Scene {
             alpha: 0,
             scale: 4,
             duration: 250,
-            onComplete: () => impactFlash.destroy() 
+            onComplete: () => impactFlash.destroy()
         });
         this.cameras.main.shake(40, 0.003);
         if (this.enemies) {
             this.enemies.children.iterate((enemy) => {
                 if (!enemy || !enemy.active || enemy.isStunned || enemy.isKicked) return;
-                
+
                 const platformTop = platform.body.top;
                 const enemyBottom = enemy.body.bottom;
-                
+
                 if (Math.abs(enemyBottom - platformTop) <= 10) {
                     if (enemy.x >= platform.body.left && enemy.x <= platform.body.right) {
-                        if (Math.abs(enemy.x - impactX) <= 32) { 
+                        if (Math.abs(enemy.x - impactX) <= 32) {
                             this.stunEnemy(enemy);
                         }
                     }
@@ -1021,16 +1140,16 @@ class PlatformerScene extends Phaser.Scene {
     }
     stunEnemy(enemy) {
         enemy.isStunned = true;
-        enemy.body.setVelocityX(0); 
-        enemy.body.setVelocityY(-150); 
-        
-        enemy.setFlipY(true); 
-        
+        enemy.body.setVelocityX(0);
+        enemy.body.setVelocityY(-150);
+
+        enemy.setFlipY(true);
+
         // Increase stun/knock duration to 15 seconds (15000ms)
         enemy.stunEvent = this.time.delayedCall(15000, () => {
             if (enemy && enemy.active && enemy.isStunned && !enemy.isKicked) {
-                enemy.isStunned = false;  
-                enemy.setFlipY(false); 
+                enemy.isStunned = false;
+                enemy.setFlipY(false);
                 enemy.baseSpeed *= 1.2;
             }
         });

@@ -133,12 +133,12 @@ class MainMenuScene extends Phaser.Scene {
         
         playBtnBg.on('pointerover', () => {
             playBtnBg.setTint(0x88ff88);
-            this.tweens.add({ targets: [playBtnBg, playText], scaleX: 1.06, scaleY: 1.06, duration: 100 });
+            playBtnBg.setAlpha(0.8);
         });
         
         playBtnBg.on('pointerout', () => {
             playBtnBg.clearTint();
-            this.tweens.add({ targets: [playBtnBg, playText], scaleX: 1.0, scaleY: 1.0, duration: 100 });
+            playBtnBg.setAlpha(1.0);
         });
         
         // --- Level Select Button ---
@@ -160,12 +160,12 @@ class MainMenuScene extends Phaser.Scene {
         
         selectBtnBg.on('pointerover', () => {
             selectBtnBg.setTint(0x88ccff);
-            this.tweens.add({ targets: [selectBtnBg, selectText], scaleX: 1.06, scaleY: 1.06, duration: 100 });
+            selectBtnBg.setAlpha(0.8);
         });
         
         selectBtnBg.on('pointerout', () => {
             selectBtnBg.clearTint();
-            this.tweens.add({ targets: [selectBtnBg, selectText], scaleX: 1.0, scaleY: 1.0, duration: 100 });
+            selectBtnBg.setAlpha(1.0);
         });
     }
     
@@ -222,12 +222,12 @@ class LevelSelectScene extends Phaser.Scene {
         
         backBtnBg.on('pointerover', () => {
             backBtnBg.setTint(0xffaa55);
-            this.tweens.add({ targets: [backBtnBg, backText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+            backBtnBg.setAlpha(0.8);
         });
         
         backBtnBg.on('pointerout', () => {
             backBtnBg.clearTint();
-            this.tweens.add({ targets: [backBtnBg, backText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+            backBtnBg.setAlpha(1.0);
         });
         
         this.currentTab = 0; 
@@ -325,15 +325,15 @@ class LevelSelectScene extends Phaser.Scene {
                    })
                    .on('pointerover', () => {
                        btnBg.setTint(0xffffff);
-                       this.tweens.add({ targets: btnBg, scaleX: 1.08, scaleY: 1.08, duration: 80 });
+                       btnBg.setAlpha(0.8);
                        btn.setStyle({ fill: '#ffff00', backgroundColor: isCompleted ? '#ff9900' : '#00ff00' });
-                       this.tweens.add({ targets: btn, scaleX: 1.08, scaleY: 1.08, duration: 80 });
+                       btn.setAlpha(0.8);
                    })
                    .on('pointerout', () => {
                        btnBg.setTint(isCompleted ? 0xffcc44 : 0x44ff44);
-                       this.tweens.add({ targets: btnBg, scaleX: 1.0, scaleY: 1.0, duration: 80 });
+                       btnBg.setAlpha(1.0);
                        btn.setStyle({ fill: '#ffffff', backgroundColor: bgColor });
-                       this.tweens.add({ targets: btn, scaleX: 1.0, scaleY: 1.0, duration: 80 });
+                       btn.setAlpha(1.0);
                    });
             }
             this.buttonsGroup.add(btn);
@@ -818,11 +818,11 @@ class PlatformerScene extends Phaser.Scene {
             this.resumeBtn.on('pointerdown', () => this.togglePause());
             this.resumeBtn.on('pointerover', () => {
                 this.resumeBtn.setTint(0x88ff88);
-                this.tweens.add({ targets: [this.resumeBtn, this.resumeText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+                this.resumeBtn.setAlpha(0.8);
             });
             this.resumeBtn.on('pointerout', () => {
                 this.resumeBtn.clearTint();
-                this.tweens.add({ targets: [this.resumeBtn, this.resumeText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+                this.resumeBtn.setAlpha(1.0);
             });
             
             // --- Level Select Button ---
@@ -838,11 +838,11 @@ class PlatformerScene extends Phaser.Scene {
             });
             this.lvlSelectBtn.on('pointerover', () => {
                 this.lvlSelectBtn.setTint(0x88ccff);
-                this.tweens.add({ targets: [this.lvlSelectBtn, this.lvlSelectText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+                this.lvlSelectBtn.setAlpha(0.8);
             });
             this.lvlSelectBtn.on('pointerout', () => {
                 this.lvlSelectBtn.clearTint();
-                this.tweens.add({ targets: [this.lvlSelectBtn, this.lvlSelectText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+                this.lvlSelectBtn.setAlpha(1.0);
             });
             
             // --- Main Menu Button ---
@@ -858,11 +858,11 @@ class PlatformerScene extends Phaser.Scene {
             });
             this.mainMenuBtn.on('pointerover', () => {
                 this.mainMenuBtn.setTint(0xffaa55);
-                this.tweens.add({ targets: [this.mainMenuBtn, this.mainMenuText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+                this.mainMenuBtn.setAlpha(0.8);
             });
             this.mainMenuBtn.on('pointerout', () => {
                 this.mainMenuBtn.clearTint();
-                this.tweens.add({ targets: [this.mainMenuBtn, this.mainMenuText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+                this.mainMenuBtn.setAlpha(1.0);
             });
         } else {
             this.isPaused = false;

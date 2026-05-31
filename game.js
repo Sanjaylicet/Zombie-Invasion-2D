@@ -75,26 +75,165 @@ function getLevelConfig(levelId) {
         spawnPoints
     };
 }
+// --- Main Menu Scene ---
+class MainMenuScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'MainMenuScene' });
+    }
+    preload() {
+        this.load.image('menu_bg', 'assets/totalassets/png/Tiles/BGTile (1).png');
+        this.load.image('menu_panel', 'assets/menu/png/Windows.png');
+        this.load.image('menu_button', 'assets/menu/png/Button.png');
+    }
+    create() {
+        // Tiled menu background
+        this.bg = this.add.tileSprite(320, 180, 640, 360, 'menu_bg');
+        this.bg.setAlpha(0.35);
+        
+        // Frame Panel
+        this.panel = this.add.image(320, 190, 'menu_panel');
+        this.panel.setDisplaySize(420, 270);
+        
+        // Title Text
+        this.titleText = this.add.text(320, 80, 'ZOMBIE INVASION', {
+            fontSize: '36px',
+            fill: '#ff2222',
+            fontFamily: 'Courier',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
+        }).setOrigin(0.5);
+        
+        // Pulsing Title Animation
+        this.tweens.add({
+            targets: this.titleText,
+            scaleX: 1.05,
+            scaleY: 1.05,
+            y: 75,
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // --- Play Button ---
+        const playBtnBg = this.add.image(320, 175, 'menu_button').setDisplaySize(200, 52);
+        playBtnBg.setInteractive({ useHandCursor: true });
+        
+        const playText = this.add.text(320, 175, 'PLAY GAME', {
+            fontSize: '18px',
+            fill: '#ffffff',
+            fontFamily: 'Courier',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        
+        playBtnBg.on('pointerdown', () => {
+            const lvl = this.getHighestLevel();
+            this.scene.start('PlatformerScene', { levelId: lvl });
+        });
+        
+        playBtnBg.on('pointerover', () => {
+            playBtnBg.setTint(0x88ff88);
+            this.tweens.add({ targets: [playBtnBg, playText], scaleX: 1.06, scaleY: 1.06, duration: 100 });
+        });
+        
+        playBtnBg.on('pointerout', () => {
+            playBtnBg.clearTint();
+            this.tweens.add({ targets: [playBtnBg, playText], scaleX: 1.0, scaleY: 1.0, duration: 100 });
+        });
+        
+        // --- Level Select Button ---
+        const selectBtnBg = this.add.image(320, 245, 'menu_button').setDisplaySize(200, 52);
+        selectBtnBg.setInteractive({ useHandCursor: true });
+        
+        const selectText = this.add.text(320, 245, 'LEVEL SELECT', {
+            fontSize: '18px',
+            fill: '#ffffff',
+            fontFamily: 'Courier',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        
+        selectBtnBg.on('pointerdown', () => {
+            this.scene.start('LevelSelectScene');
+        });
+        
+        selectBtnBg.on('pointerover', () => {
+            selectBtnBg.setTint(0x88ccff);
+            this.tweens.add({ targets: [selectBtnBg, selectText], scaleX: 1.06, scaleY: 1.06, duration: 100 });
+        });
+        
+        selectBtnBg.on('pointerout', () => {
+            selectBtnBg.clearTint();
+            this.tweens.add({ targets: [selectBtnBg, selectText], scaleX: 1.0, scaleY: 1.0, duration: 100 });
+        });
+    }
+    
+    getHighestLevel() {
+        try {
+            return parseInt(localStorage.getItem('PokiBonk_HighestLevel')) || 1;
+        } catch (error) {
+            return 1;
+        }
+    }
+}
+
 // --- Level Selection Scene ---
 class LevelSelectScene extends Phaser.Scene {
     constructor() {
         super({ key: 'LevelSelectScene' });
     }
     preload() {
-        // Preload default menu background
-        this.load.image('menu_bg', 'assets/totalassets/png/Tiles/BGTile (1).png');
+        // Assets are preloaded in MainMenuScene, but defined here just in case
     }
     create() {
         // Tiled menu background
         this.bg = this.add.tileSprite(320, 180, 640, 360, 'menu_bg');
-        this.bg.setAlpha(0.5);
+        this.bg.setAlpha(0.35);
+        
+        // Frame Panel (using assets/menu/png/Windows.png)
+        this.panel = this.add.image(320, 190, 'menu_panel').setDisplaySize(540, 280);
+        
         // Header Title
-        this.add.text(320, 25, 'ZOMBIE INVASION: SELECT LEVEL', {
-            fontSize: '24px',
+        this.add.text(320, 32, 'ZOMBIE INVASION: SELECT LEVEL', {
+            fontSize: '22px',
             fill: '#ffff00',
             fontFamily: 'Courier',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
         }).setOrigin(0.5);
+        
+        // Back to Main Menu Button at the bottom
+        const backBtnBg = this.add.image(320, 310, 'menu_button').setDisplaySize(140, 36);
+        backBtnBg.setInteractive({ useHandCursor: true });
+        
+        const backText = this.add.text(320, 310, '◄ MENU', {
+            fontSize: '14px',
+            fill: '#ffffff',
+            fontFamily: 'Courier',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        backBtnBg.on('pointerdown', () => {
+            this.scene.start('MainMenuScene');
+        });
+        
+        backBtnBg.on('pointerover', () => {
+            backBtnBg.setTint(0xffaa55);
+            this.tweens.add({ targets: [backBtnBg, backText], scaleX: 1.05, scaleY: 1.05, duration: 80 });
+        });
+        
+        backBtnBg.on('pointerout', () => {
+            backBtnBg.clearTint();
+            this.tweens.add({ targets: [backBtnBg, backText], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+        });
+        
         this.currentTab = 0; 
         this.createTabs();
         this.createLevelButtons();
@@ -104,8 +243,8 @@ class LevelSelectScene extends Phaser.Scene {
         this.tabButtons = [];
         
         tabs.forEach((tab, index) => {
-            const x = 80 + index * 160;
-            const y = 65;
+            const x = 140 + index * 120;
+            const y = 72;
             const btn = this.add.text(x, y, tab, {
                 fontSize: '11px',
                 fill: index === this.currentTab ? '#ffff00' : '#ffffff',
@@ -139,9 +278,9 @@ class LevelSelectScene extends Phaser.Scene {
         else if (this.currentTab === 3) { startLevel = 39; endLevel = 50; }
         const cols = 5;
         const startX = 140;
-        const startY = 125;
+        const startY = 135;
         const spacingX = 90;
-        const spacingY = 55;
+        const spacingY = 50;
         let index = 0;
         for (let l = startLevel; l <= endLevel; l++) {
             const row = Math.floor(index / cols);
@@ -150,29 +289,44 @@ class LevelSelectScene extends Phaser.Scene {
             const y = startY + row * spacingY;
             const isUnlocked = l <= highestLevel;
             const isCompleted = l < highestLevel;
-            let bgColor = '#44444488';
+            let bgColor = '#444444';
             let txtColor = '#888888';
             let label = l.toString() + ' 🔒';
             if (isUnlocked) {
-                bgColor = isCompleted ? '#ffaa0044' : '#00aa0044';
                 txtColor = '#ffffff';
                 label = l.toString() + (isCompleted ? ' ★' : '');
             }
+            
+            // Draw visual button background from menu assets
+            const btnBg = this.add.image(x, y, 'menu_button').setDisplaySize(72, 38);
+            if (!isUnlocked) {
+                btnBg.setTint(0x555555);
+            } else {
+                btnBg.setTint(isCompleted ? 0xffcc44 : 0x44ff44);
+            }
+            this.buttonsGroup.add(btnBg);
+            
             const btn = this.add.text(x, y, label, {
-                fontSize: '16px',
+                fontSize: '14px',
                 fill: txtColor,
-                backgroundColor: bgColor,
                 fontFamily: 'Courier',
                 fontStyle: 'bold',
                 align: 'center'
             })
-            .setOrigin(0.5)
-            .setPadding(8)
-            .setFixedSize(65, 36);
+            .setOrigin(0.5);
+            
             if (isUnlocked) {
-                btn.setInteractive({ useHandCursor: true })
+                btnBg.setInteractive({ useHandCursor: true })
                    .on('pointerdown', () => {
                        this.scene.start('PlatformerScene', { levelId: l });
+                   })
+                   .on('pointerover', () => {
+                       btnBg.setTint(0xffffff);
+                       this.tweens.add({ targets: [btnBg, btn], scaleX: 1.08, scaleY: 1.08, duration: 80 });
+                   })
+                   .on('pointerout', () => {
+                       btnBg.setTint(isCompleted ? 0xffcc44 : 0x44ff44);
+                       this.tweens.add({ targets: [btnBg, btn], scaleX: 1.0, scaleY: 1.0, duration: 80 });
                    });
             }
             this.buttonsGroup.add(btn);
@@ -899,6 +1053,6 @@ const config = {
             debug: false
         }
     },
-    scene: [LevelSelectScene, PlatformerScene]
+    scene: [MainMenuScene, LevelSelectScene, PlatformerScene]
 };
 const game = new Phaser.Game(config);

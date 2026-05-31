@@ -208,11 +208,11 @@ class LevelSelectScene extends Phaser.Scene {
         }).setOrigin(0.5);
         
         // Back to Main Menu Button at the bottom
-        const backBtnBg = this.add.image(320, 310, 'menu_button').setDisplaySize(140, 36);
+        const backBtnBg = this.add.image(320, 310, 'menu_button').setDisplaySize(180, 44);
         backBtnBg.setInteractive({ useHandCursor: true });
         
         const backText = this.add.text(320, 310, '◄ MENU', {
-            fontSize: '14px',
+            fontSize: '15px',
             fill: '#ffffff',
             fontFamily: 'Courier',
             fontStyle: 'bold',
@@ -289,44 +289,41 @@ class LevelSelectScene extends Phaser.Scene {
             const y = startY + row * spacingY;
             const isUnlocked = l <= highestLevel;
             const isCompleted = l < highestLevel;
-            let bgColor = '#444444';
+            let bgColor = '#44444488';
             let txtColor = '#888888';
             let label = l.toString() + ' 🔒';
             if (isUnlocked) {
+                bgColor = isCompleted ? '#ffaa00bb' : '#00aa00bb';
                 txtColor = '#ffffff';
                 label = l.toString() + (isCompleted ? ' ★' : '');
             }
             
-            // Draw visual button background from menu assets
-            const btnBg = this.add.image(x, y, 'menu_button').setDisplaySize(72, 38);
-            if (!isUnlocked) {
-                btnBg.setTint(0x555555);
-            } else {
-                btnBg.setTint(isCompleted ? 0xffcc44 : 0x44ff44);
-            }
-            this.buttonsGroup.add(btnBg);
-            
             const btn = this.add.text(x, y, label, {
-                fontSize: '14px',
+                fontSize: '15px',
                 fill: txtColor,
+                backgroundColor: bgColor,
                 fontFamily: 'Courier',
                 fontStyle: 'bold',
-                align: 'center'
+                align: 'center',
+                stroke: '#000000',
+                strokeThickness: 2
             })
-            .setOrigin(0.5);
+            .setOrigin(0.5)
+            .setPadding(8)
+            .setFixedSize(65, 36);
             
             if (isUnlocked) {
-                btnBg.setInteractive({ useHandCursor: true })
+                btn.setInteractive({ useHandCursor: true })
                    .on('pointerdown', () => {
                        this.scene.start('PlatformerScene', { levelId: l });
                    })
                    .on('pointerover', () => {
-                       btnBg.setTint(0xffffff);
-                       this.tweens.add({ targets: [btnBg, btn], scaleX: 1.08, scaleY: 1.08, duration: 80 });
+                       btn.setStyle({ fill: '#ffff00', backgroundColor: isCompleted ? '#ff9900' : '#00ff00' });
+                       this.tweens.add({ targets: btn, scaleX: 1.08, scaleY: 1.08, duration: 80 });
                    })
                    .on('pointerout', () => {
-                       btnBg.setTint(isCompleted ? 0xffcc44 : 0x44ff44);
-                       this.tweens.add({ targets: [btnBg, btn], scaleX: 1.0, scaleY: 1.0, duration: 80 });
+                       btn.setStyle({ fill: '#ffffff', backgroundColor: bgColor });
+                       this.tweens.add({ targets: btn, scaleX: 1.0, scaleY: 1.0, duration: 80 });
                    });
             }
             this.buttonsGroup.add(btn);

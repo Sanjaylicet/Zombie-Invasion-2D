@@ -79,8 +79,8 @@ class MainMenuScene extends Phaser.Scene {
     }
     preload() {
         this.load.image('menu_bg', 'assets/totalassets/png/Tiles/BGTile (1).png');
-        this.load.image('menu_panel', 'assets/menu/png/Windows.png');
-        this.load.image('menu_button', 'assets/menu/png/Button.png');
+        this.load.image('menu_panel', 'assets/menu/png/window_sliced.png');
+        this.load.image('menu_button', 'assets/menu/png/button_sliced.png');
     }
     create() {
         // Tiled menu background
@@ -114,11 +114,11 @@ class MainMenuScene extends Phaser.Scene {
         });
         
         // --- Play Button ---
-        const playBtnBg = this.add.image(320, 175, 'menu_button').setDisplaySize(200, 52);
+        const playBtnBg = this.add.image(320, 160, 'menu_button').setDisplaySize(200, 48);
         playBtnBg.setInteractive({ useHandCursor: true });
         
-        const playText = this.add.text(320, 175, 'PLAY GAME', {
-            fontSize: '18px',
+        const playText = this.add.text(320, 160, 'PLAY GAME', {
+            fontSize: '16px',
             fill: '#ffffff',
             fontFamily: 'Courier',
             fontStyle: 'bold',
@@ -142,11 +142,11 @@ class MainMenuScene extends Phaser.Scene {
         });
         
         // --- Level Select Button ---
-        const selectBtnBg = this.add.image(320, 245, 'menu_button').setDisplaySize(200, 52);
+        const selectBtnBg = this.add.image(320, 220, 'menu_button').setDisplaySize(200, 48);
         selectBtnBg.setInteractive({ useHandCursor: true });
         
-        const selectText = this.add.text(320, 245, 'LEVEL SELECT', {
-            fontSize: '18px',
+        const selectText = this.add.text(320, 220, 'LEVEL SELECT', {
+            fontSize: '16px',
             fill: '#ffffff',
             fontFamily: 'Courier',
             fontStyle: 'bold',
@@ -166,6 +166,38 @@ class MainMenuScene extends Phaser.Scene {
         selectBtnBg.on('pointerout', () => {
             selectBtnBg.clearTint();
             selectBtnBg.setAlpha(1.0);
+        });
+
+        // --- Players Toggle Button ---
+        this.isTwoPlayer = localStorage.getItem('PokiBonk_TwoPlayer') === 'true';
+        
+        const modeBtnBg = this.add.image(320, 280, 'menu_button').setDisplaySize(200, 48);
+        modeBtnBg.setInteractive({ useHandCursor: true });
+        
+        const getModeText = () => this.isTwoPlayer ? 'PLAYERS: 2 PLAYERS' : 'PLAYERS: 1 PLAYER';
+        const modeText = this.add.text(320, 280, getModeText(), {
+            fontSize: '16px',
+            fill: '#ffffff',
+            fontFamily: 'Courier',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        
+        modeBtnBg.on('pointerdown', () => {
+            this.isTwoPlayer = !this.isTwoPlayer;
+            localStorage.setItem('PokiBonk_TwoPlayer', this.isTwoPlayer ? 'true' : 'false');
+            modeText.setText(getModeText());
+        });
+        
+        modeBtnBg.on('pointerover', () => {
+            modeBtnBg.setTint(0xffff55);
+            modeBtnBg.setAlpha(0.8);
+        });
+        
+        modeBtnBg.on('pointerout', () => {
+            modeBtnBg.clearTint();
+            modeBtnBg.setAlpha(1.0);
         });
     }
     
@@ -377,7 +409,7 @@ class PlatformerScene extends Phaser.Scene {
         this.load.image('tile_8', 'assets/totalassets/png/Tiles/Tile (8).png');
         this.load.image('tile_14', 'assets/totalassets/png/Tiles/Tile (14).png');
         this.load.image('barrel', 'assets/totalassets/png/Objects/Barrel (1).png');
-        this.load.image('menu_button', 'assets/menu/png/Button.png');
+        this.load.image('menu_button', 'assets/menu/png/button_sliced.png');
         // --- Load Hero Animation Frames ---
         for (let i = 1; i <= 10; i++) {
             this.load.image(`hero_idle_${i}`, `assets/hero/Idle (${i}).png`);
@@ -389,6 +421,15 @@ class PlatformerScene extends Phaser.Scene {
         }
         for (let i = 1; i <= 12; i++) {
             this.load.image(`hero_jump_${i}`, `assets/hero/Jump (${i}).png`);
+        }
+        // --- Load Hero 2 (Player 2) Animation Frames ---
+        for (let i = 1; i <= 10; i++) {
+            this.load.image(`hero2_idle_${i}`, `assets/hero 2/Idle (${i}).png`);
+            this.load.image(`hero2_dead_${i}`, `assets/hero 2/Dead (${i}).png`);
+            this.load.image(`hero2_jump_${i}`, `assets/hero 2/Jump (${i}).png`);
+        }
+        for (let i = 1; i <= 8; i++) {
+            this.load.image(`hero2_run_${i}`, `assets/hero 2/Run (${i}).png`);
         }
         // --- Load Female Enemy Animation Frames ---
         for (let i = 1; i <= 10; i++) {
@@ -463,6 +504,12 @@ class PlatformerScene extends Phaser.Scene {
         createAnim('hero_jump', 'hero_jump_', 12, 15, 0);
         createAnim('hero_dead', 'hero_dead_', 10, 10, 0);
         createAnim('hero_hurt', 'hero_hurt_', 8, 15, 0);
+        // Hero 2 anims
+        createAnim('hero2_idle', 'hero2_idle_', 10, 15);
+        createAnim('hero2_run', 'hero2_run_', 8, 15);
+        createAnim('hero2_jump', 'hero2_jump_', 10, 15, 0);
+        createAnim('hero2_dead', 'hero2_dead_', 10, 10, 0);
+        createAnim('hero2_hurt', 'hero2_idle_', 10, 15, 0);
         // Enemy anims
         createAnim('enemy_female_walk', 'enemy_female_walk_', 10, 12);
         createAnim('enemy_female_idle', 'enemy_female_idle_', 15, 12);
@@ -510,7 +557,11 @@ class PlatformerScene extends Phaser.Scene {
         }
     }
     createPlayer() {
-        this.player = this.physics.add.sprite(320, 300, 'hero_idle_1');
+        this.isTwoPlayer = localStorage.getItem('PokiBonk_TwoPlayer') === 'true';
+        
+        // Spawn Player 1
+        const p1X = this.isTwoPlayer ? 240 : 320;
+        this.player = this.physics.add.sprite(p1X, 300, 'hero_idle_1');
         this.player.setScale(0.1);
         this.player.body.setSize(320, 480);
         this.player.body.setOffset(174, 89);
@@ -518,6 +569,20 @@ class PlatformerScene extends Phaser.Scene {
         this.player.body.setMaxVelocity(this.MAX_SPEED_X, this.MAX_SPEED_Y);
         this.player.body.setDragX(this.FRICTION);
         this.player.play('hero_idle');
+        this.isInvulnerable = false;
+        
+        // Spawn Player 2 if enabled
+        if (this.isTwoPlayer) {
+            this.player2 = this.physics.add.sprite(400, 300, 'hero2_idle_1');
+            this.player2.setScale(0.1);
+            this.player2.body.setSize(320, 480);
+            this.player2.body.setOffset(174, 89);
+            this.player2.body.setCollideWorldBounds(true);
+            this.player2.body.setMaxVelocity(this.MAX_SPEED_X, this.MAX_SPEED_Y);
+            this.player2.body.setDragX(this.FRICTION);
+            this.player2.play('hero2_idle');
+            this.isInvulnerable2 = false;
+        }
     }
     createEnemies() {
         this.enemies = this.physics.add.group();
@@ -567,32 +632,53 @@ class PlatformerScene extends Phaser.Scene {
         this.physics.add.collider(this.player, this.floor);
         this.physics.add.collider(this.player, this.platforms);
         this.physics.add.collider(this.player, this.tntBlocks);
+        
+        if (this.isTwoPlayer && this.player2) {
+            this.physics.add.collider(this.player2, this.floor);
+            this.physics.add.collider(this.player2, this.platforms);
+            this.physics.add.collider(this.player2, this.tntBlocks);
+            
+            // Collide players when hitting each other
+            this.physics.add.collider(this.player, this.player2);
+        }
+        
         this.physics.add.collider(this.enemies, this.floor);
         this.physics.add.collider(this.enemies, this.platforms);
         this.physics.add.collider(this.enemies, this.tntBlocks);
+        
         this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
             if (this.isGameOver || this.isLevelComplete) return;
-            if (enemy.isStunned && !enemy.isKicked) {
-                enemy.isKicked = true;
-                if (enemy.stunEvent) enemy.stunEvent.remove();
-                const kickDirection = player.x <= enemy.x ? 1 : -1;
-                enemy.body.setVelocityX(kickDirection * 500);
-                enemy.body.setVelocityY(-150);
-                enemy.body.checkCollision.none = true;
-                this.tweens.add({
-                    targets: enemy,
-                    angle: 360 * kickDirection,
-                    duration: 300,
-                    repeat: -1
-                });
-                this.score += 100;
-                this.scoreText.setText('SCORE: ' + this.score);
-                this.createFloatingText(enemy.x, enemy.y, '+100');
-                this.incrementKills();
-            } else if (!enemy.isStunned && !enemy.isKicked) {
-                this.handlePlayerHit(enemy);
-            }
+            this.handleEnemyOverlap(player, enemy, false);
         });
+        
+        if (this.isTwoPlayer && this.player2) {
+            this.physics.add.overlap(this.player2, this.enemies, (player2, enemy) => {
+                if (this.isGameOver || this.isLevelComplete) return;
+                this.handleEnemyOverlap(player2, enemy, true);
+            });
+        }
+    }
+    handleEnemyOverlap(playerSprite, enemy, isPlayer2) {
+        if (enemy.isStunned && !enemy.isKicked) {
+            enemy.isKicked = true;
+            if (enemy.stunEvent) enemy.stunEvent.remove();
+            const kickDirection = playerSprite.x <= enemy.x ? 1 : -1;
+            enemy.body.setVelocityX(kickDirection * 500);
+            enemy.body.setVelocityY(-150);
+            enemy.body.checkCollision.none = true;
+            this.tweens.add({
+                targets: enemy,
+                angle: 360 * kickDirection,
+                duration: 300,
+                repeat: -1
+            });
+            this.score += 100;
+            this.scoreText.setText('SCORE: ' + this.score);
+            this.createFloatingText(enemy.x, enemy.y, '+100');
+            this.incrementKills();
+        } else if (!enemy.isStunned && !enemy.isKicked) {
+            this.handlePlayerHit(playerSprite, enemy, isPlayer2);
+        }
     }
     createFloatingText(x, y, message) {
         const txt = this.add.text(x, y, message, { fontSize: '16px', fill: '#ffff00', fontStyle: 'bold' });
@@ -605,28 +691,38 @@ class PlatformerScene extends Phaser.Scene {
             onComplete: () => txt.destroy()
         });
     }
-    handlePlayerHit(enemy) {
-        if (this.isInvulnerable || this.isGameOver || this.isLevelComplete) return;
+    handlePlayerHit(playerSprite, enemy, isPlayer2) {
+        const invulnFlag = isPlayer2 ? this.isInvulnerable2 : this.isInvulnerable;
+        if (invulnFlag || this.isGameOver || this.isLevelComplete) return;
         this.lives--;
         this.updateLivesText();
         if (this.lives <= 0) {
             this.triggerGameOver();
         } else {
-            this.isInvulnerable = true;
-            this.player.play('hero_hurt');
-            const bounceDir = this.player.x < enemy.x ? -1 : 1;
-            this.player.body.setVelocityX(bounceDir * 300);
-            this.player.body.setVelocityY(-350);
+            if (isPlayer2) {
+                this.isInvulnerable2 = true;
+                playerSprite.play('hero2_hurt');
+            } else {
+                this.isInvulnerable = true;
+                playerSprite.play('hero_hurt');
+            }
+            const bounceDir = playerSprite.x < enemy.x ? -1 : 1;
+            playerSprite.body.setVelocityX(bounceDir * 300);
+            playerSprite.body.setVelocityY(-350);
             this.cameras.main.shake(100, 0.005);
             this.tweens.add({
-                targets: this.player,
+                targets: playerSprite,
                 alpha: 0.3,
                 duration: 150,
                 yoyo: true,
                 repeat: 4,
                 onComplete: () => {
-                    this.player.alpha = 1;
-                    this.isInvulnerable = false;
+                    playerSprite.alpha = 1;
+                    if (isPlayer2) {
+                        this.isInvulnerable2 = false;
+                    } else {
+                        this.isInvulnerable = false;
+                    }
                 }
             });
         }
@@ -705,7 +801,16 @@ class PlatformerScene extends Phaser.Scene {
     setupInput() {
         this.cursors = this.input.keyboard.createCursorKeys();
         this.isJumping = false;
+        this.isJumping2 = false;
         this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        
+        // Player 1 WASD keys
+        this.wasd = {
+            up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+            left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+            down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+            right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+        };
     }
     saveLevelRecord(levelIndex) {
         try {
@@ -729,6 +834,9 @@ class PlatformerScene extends Phaser.Scene {
         if (this.isGameOver) return;
         this.isGameOver = true;
         this.player.play('hero_dead');
+        if (this.isTwoPlayer && this.player2) {
+            this.player2.play('hero2_dead');
+        }
         this.physics.pause();
         this.tweens.pauseAll();
         if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStop();
@@ -765,8 +873,14 @@ class PlatformerScene extends Phaser.Scene {
         this.physics.resume();
         this.tweens.resumeAll();
         if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStart();
+        
         this.player.play('hero_idle');
         this.player.body.setVelocityY(-400);
+        
+        if (this.isTwoPlayer && this.player2) {
+            this.player2.play('hero2_idle');
+            this.player2.body.setVelocityY(-400);
+        }
     }
     update() {
         if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
@@ -790,6 +904,9 @@ class PlatformerScene extends Phaser.Scene {
             
             // Pause all animations
             this.player.anims.pause();
+            if (this.isTwoPlayer && this.player2) {
+                this.player2.anims.pause();
+            }
             this.enemies.children.iterate((enemy) => {
                 if (enemy && enemy.active) {
                     enemy.anims.pause();
@@ -884,6 +1001,9 @@ class PlatformerScene extends Phaser.Scene {
             
             // Resume animations
             this.player.anims.resume();
+            if (this.isTwoPlayer && this.player2) {
+                this.player2.anims.resume();
+            }
             this.enemies.children.iterate((enemy) => {
                 if (enemy && enemy.active) {
                     enemy.anims.resume();
@@ -893,21 +1013,45 @@ class PlatformerScene extends Phaser.Scene {
     }
     updatePlayerAnimations() {
         if (this.isGameOver) return;
+        
+        // Player 1 Animations
         if (this.isInvulnerable && this.player.anims.currentAnim && this.player.anims.currentAnim.key === 'hero_hurt' && !this.player.anims.currentFrame.isLast) {
-            return;
-        }
-        const isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
-        if (!isGrounded) {
-            this.player.play('hero_jump', true);
-        } else if (Math.abs(this.player.body.velocity.x) > 10) {
-            this.player.play('hero_run', true);
+            // Wait for hurt animation to finish
         } else {
-            this.player.play('hero_idle', true);
+            const isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
+            if (!isGrounded) {
+                this.player.play('hero_jump', true);
+            } else if (Math.abs(this.player.body.velocity.x) > 10) {
+                this.player.play('hero_run', true);
+            } else {
+                this.player.play('hero_idle', true);
+            }
+            if (this.player.body.velocity.x < -10) {
+                this.player.setFlipX(true);
+            } else if (this.player.body.velocity.x > 10) {
+                this.player.setFlipX(false);
+            }
         }
-        if (this.player.body.velocity.x < -10) {
-            this.player.setFlipX(true);
-        } else if (this.player.body.velocity.x > 10) {
-            this.player.setFlipX(false);
+
+        // Player 2 Animations
+        if (this.isTwoPlayer && this.player2 && this.player2.active) {
+            if (this.isInvulnerable2 && this.player2.anims.currentAnim && this.player2.anims.currentAnim.key === 'hero2_hurt' && !this.player2.anims.currentFrame.isLast) {
+                // Wait for Player 2 hurt animation
+            } else {
+                const isGrounded2 = this.player2.body.blocked.down || this.player2.body.touching.down;
+                if (!isGrounded2) {
+                    this.player2.play('hero2_jump', true);
+                } else if (Math.abs(this.player2.body.velocity.x) > 10) {
+                    this.player2.play('hero2_run', true);
+                } else {
+                    this.player2.play('hero2_idle', true);
+                }
+                if (this.player2.body.velocity.x < -10) {
+                    this.player2.setFlipX(true);
+                } else if (this.player2.body.velocity.x > 10) {
+                    this.player2.setFlipX(false);
+                }
+            }
         }
     }
     updateEnemies() {
@@ -974,47 +1118,79 @@ class PlatformerScene extends Phaser.Scene {
         });
     }
     handlePlayerMovement() {
-        if (this.cursors.left.isDown) {
+        // Player 1 WASD Controls
+        if (this.wasd.left.isDown) {
             this.player.body.setAccelerationX(-this.ACCELERATION_X);
-        } else if (this.cursors.right.isDown) {
+        } else if (this.wasd.right.isDown) {
             this.player.body.setAccelerationX(this.ACCELERATION_X);
         } else {
             this.player.body.setAccelerationX(0);
         }
-        const isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
-        if (this.cursors.up.isDown && isGrounded) {
+        const isGrounded1 = this.player.body.blocked.down || this.player.body.touching.down;
+        if (this.wasd.up.isDown && isGrounded1) {
             this.player.body.setVelocityY(this.JUMP_VELOCITY);
             this.isJumping = true;
         }
-        if (this.cursors.up.isUp && this.isJumping && this.player.body.velocity.y < 0) {
+        if (this.wasd.up.isUp && this.isJumping && this.player.body.velocity.y < 0) {
             this.player.body.setVelocityY(this.player.body.velocity.y * 0.5);
             this.isJumping = false;
         }
         if (this.player.body.velocity.y >= 0) {
             this.isJumping = false;
         }
+
+        // Player 2 Arrow Key Controls
+        if (this.isTwoPlayer && this.player2 && this.player2.active) {
+            if (this.cursors.left.isDown) {
+                this.player2.body.setAccelerationX(-this.ACCELERATION_X);
+            } else if (this.cursors.right.isDown) {
+                this.player2.body.setAccelerationX(this.ACCELERATION_X);
+            } else {
+                this.player2.body.setAccelerationX(0);
+            }
+            const isGrounded2 = this.player2.body.blocked.down || this.player2.body.touching.down;
+            if (this.cursors.up.isDown && isGrounded2) {
+                this.player2.body.setVelocityY(this.JUMP_VELOCITY);
+                this.isJumping2 = true;
+            }
+            if (this.cursors.up.isUp && this.isJumping2 && this.player2.body.velocity.y < 0) {
+                this.player2.body.setVelocityY(this.player2.body.velocity.y * 0.5);
+                this.isJumping2 = false;
+            }
+            if (this.player2.body.velocity.y >= 0) {
+                this.isJumping2 = false;
+            }
+        }
     }
     checkBonkMechanic() {
+        // Player 1 bonk check
         if (this.player.body.blocked.up || this.player.body.touching.up) {
-            this.platforms.children.iterate((platform) => {
-                if (platform && platform.active && !platform.isBonked) {
-                    const isHorizontallyAligned = this.player.body.right > platform.body.left && this.player.body.left < platform.body.right;
-                    const isTouchingBottom = Math.abs(this.player.body.top - platform.body.bottom) <= 12;
-                    if (isHorizontallyAligned && isTouchingBottom) {
-                        this.triggerBonk(platform, this.player.x, platform.body.bottom);
-                    }
-                }
-            });
-            this.tntBlocks.children.iterate((tntBlock) => {
-                if (tntBlock && tntBlock.active && !tntBlock.isBonked) {
-                    const isHorizontallyAligned = this.player.body.right > tntBlock.body.left && this.player.body.left < tntBlock.body.right;
-                    const isTouchingBottom = Math.abs(this.player.body.top - tntBlock.body.bottom) <= 12;
-                    if (isHorizontallyAligned && isTouchingBottom) {
-                        this.triggerTNT(tntBlock);
-                    }
-                }
-            });
+            this.checkBonkForPlayer(this.player);
         }
+        // Player 2 bonk check
+        if (this.isTwoPlayer && this.player2 && (this.player2.body.blocked.up || this.player2.body.touching.up)) {
+            this.checkBonkForPlayer(this.player2);
+        }
+    }
+    checkBonkForPlayer(playerSprite) {
+        this.platforms.children.iterate((platform) => {
+            if (platform && platform.active && !platform.isBonked) {
+                const isHorizontallyAligned = playerSprite.body.right > platform.body.left && playerSprite.body.left < platform.body.right;
+                const isTouchingBottom = Math.abs(playerSprite.body.top - platform.body.bottom) <= 12;
+                if (isHorizontallyAligned && isTouchingBottom) {
+                    this.triggerBonk(platform, playerSprite.x, platform.body.bottom);
+                }
+            }
+        });
+        this.tntBlocks.children.iterate((tntBlock) => {
+            if (tntBlock && tntBlock.active && !tntBlock.isBonked) {
+                const isHorizontallyAligned = playerSprite.body.right > tntBlock.body.left && playerSprite.body.left < tntBlock.body.right;
+                const isTouchingBottom = Math.abs(playerSprite.body.top - tntBlock.body.bottom) <= 12;
+                if (isHorizontallyAligned && isTouchingBottom) {
+                    this.triggerTNT(tntBlock);
+                }
+            }
+        });
     }
     triggerTNT(tntBlock) {
         tntBlock.isBonked = true;

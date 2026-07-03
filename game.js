@@ -1,11 +1,23 @@
-// --- Task 1: Poki Initialization Bridge ---
-if (typeof PokiSDK !== 'undefined') {
-    PokiSDK.init().then(() => {
-        console.log("Poki SDK cleanly initialized");
-    }).catch(() => {
-        console.log("Poki SDK mock bypassed (Adblock or restricted network)");
-    });
-}
+// --- Game Initialization ---
+// Safe localStorage helper for sandboxed iframes
+const safeStorage = {
+    getItem: (key) => {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            console.warn("Storage read blocked:", e);
+            return null;
+        }
+    },
+    setItem: (key, value) => {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            console.warn("Storage write blocked:", e);
+        }
+    }
+};
+
 // --- Seeded Deterministic Level Generator ---
 function getLevelConfig(levelId) {
     let bgKey = 'bg_tile_1';
@@ -24,7 +36,7 @@ function getLevelConfig(levelId) {
         tileKey = 'tile_14';
         worldName = 'Industrial Steel';
     }
-    const targetKills = 5 + levelId * 2;
+    const targetKills = Math.max(10, Math.min(5 + levelId * 2, 50));
     const maxEnemies = Math.min(4 + Math.floor(levelId / 5), 10);
     const spawnRate = Math.max(4000 - levelId * 60, 1500);
     // Slower initial speed to make it highly playable
@@ -78,19 +90,101 @@ class MainMenuScene extends Phaser.Scene {
         super({ key: 'MainMenuScene' });
     }
     preload() {
+        // --- Load Menu Visuals & Sounds ---
         this.load.image('menu_bg', 'assets/totalassets/png/Tiles/BGTile (1).png');
-        this.load.image('menu_panel', 'assets/menu/png/window_sliced.png');
-        this.load.image('menu_button', 'assets/menu/png/button_sliced.png');
+        
+        // Dynamically generate textures
+        let panelGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+        panelGraphics.fillStyle(0x111625, 0.92);
+        panelGraphics.fillRoundedRect(0, 0, 200, 200, 12);
+        panelGraphics.lineStyle(4, 0x00d2ff, 1.0);
+        panelGraphics.strokeRoundedRect(2, 2, 196, 196, 12);
+        panelGraphics.generateTexture('menu_panel', 200, 200);
+
+        let buttonGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+        buttonGraphics.fillStyle(0xffffff, 0.85);
+        buttonGraphics.fillRoundedRect(0, 0, 100, 50, 6);
+        buttonGraphics.lineStyle(3, 0xffffff, 1.0);
+        buttonGraphics.strokeRoundedRect(1, 1, 98, 48, 6);
+        buttonGraphics.generateTexture('menu_button', 100, 50);
+
+        // Preload sounds
+        this.load.audio('buttonclick', 'sounds/buttonclick.mp3');
+        this.load.audio('coin', 'sounds/coin.mp3');
+        this.load.audio('hit', 'sounds/hit.wav');
+        this.load.audio('jump', 'sounds/jump.wav');
+        this.load.audio('levelcomplete', 'sounds/levelcomplete.mp3');
+        this.load.audio('power_up', 'sounds/power_up.wav');
+        this.load.audio('tntexplosion', 'sounds/tntexplosion.wav');
+        this.load.audio('wasted', 'sounds/wasted.mp3');
+        
+        for (let i = 1; i <= 5; i++) {
+            this.load.audio(`bgmusic${i}`, `sounds/bgmusic${i}.mp3`);
+        }
+
+        // --- Load Gameplay & Environment Assets ---
+        this.load.image('bg_tile_1', 'assets/totalassets/png/Tiles/BGTile (1).png');
+        this.load.image('bg_tile_3', 'assets/totalassets/png/Tiles/BGTile (3).png');
+        this.load.image('bg_tile_4', 'assets/totalassets/png/Tiles/BGTile (4).png');
+        this.load.image('bg_tile_7', 'assets/totalassets/png/Tiles/BGTile (7).png');
+        this.load.image('tile_2', 'assets/totalassets/png/Tiles/Tile (2).png');
+        this.load.image('tile_5', 'assets/totalassets/png/Tiles/Tile (5).png');
+        this.load.image('tile_8', 'assets/totalassets/png/Tiles/Tile (8).png');
+        this.load.image('tile_14', 'assets/totalassets/png/Tiles/Tile (14).png');
+        this.load.image('barrel', 'assets/totalassets/png/Objects/Barrel (1).png');
+        this.load.image('coin', 'assets/totalassets/png/Objects/coin.png');
+
+        // --- Load Hero Animation Frames ---
+        for (let i = 1; i <= 10; i++) {
+            this.load.image(`hero_idle_${i}`, `assets/hero/Idle (${i}).png`);
+            this.load.image(`hero_dead_${i}`, `assets/hero/Dead (${i}).png`);
+        }
+        for (let i = 1; i <= 8; i++) {
+            this.load.image(`hero_run_${i}`, `assets/hero/Run (${i}).png`);
+            this.load.image(`hero_hurt_${i}`, `assets/hero/Hurt (${i}).png`);
+        }
+        for (let i = 1; i <= 12; i++) {
+            this.load.image(`hero_jump_${i}`, `assets/hero/Jump (${i}).png`);
+        }
+
+        // --- Load Hero 2 (Player 2) Animation Frames ---
+        for (let i = 1; i <= 10; i++) {
+            this.load.image(`hero2_idle_${i}`, `assets/hero 2/Idle (${i}).png`);
+            this.load.image(`hero2_dead_${i}`, `assets/hero 2/Dead (${i}).png`);
+            this.load.image(`hero2_jump_${i}`, `assets/hero 2/Jump (${i}).png`);
+        }
+        for (let i = 1; i <= 8; i++) {
+            this.load.image(`hero2_run_${i}`, `assets/hero 2/Run (${i}).png`);
+        }
+
+        // --- Load Female Enemy Animation Frames ---
+        for (let i = 1; i <= 10; i++) {
+            this.load.image(`enemy_female_walk_${i}`, `assets/enemy/female/Walk (${i}).png`);
+        }
+        for (let i = 1; i <= 15; i++) {
+            this.load.image(`enemy_female_idle_${i}`, `assets/enemy/female/Idle (${i}).png`);
+        }
+
+        // --- Load Male Enemy Animation Frames ---
+        for (let i = 1; i <= 10; i++) {
+            this.load.image(`enemy_male_walk_${i}`, `assets/enemy/male/Walk (${i}).png`);
+        }
+        for (let i = 1; i <= 15; i++) {
+            this.load.image(`enemy_male_idle_${i}`, `assets/enemy/male/Idle (${i}).png`);
+        }
     }
     create() {
+        // Loading finished
+
         // Tiled menu background
         this.bg = this.add.tileSprite(320, 180, 640, 360, 'menu_bg');
+        this.bg.setTileScale(1.40625, 1.40625);
         this.bg.setAlpha(0.35);
-        
+
         // Frame Panel
         this.panel = this.add.image(320, 190, 'menu_panel');
         this.panel.setDisplaySize(420, 270);
-        
+
         // Title Text
         this.titleText = this.add.text(320, 80, 'ZOMBIE INVASION', {
             fontSize: '36px',
@@ -100,7 +194,7 @@ class MainMenuScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 6
         }).setOrigin(0.5);
-        
+
         // Pulsing Title Animation
         this.tweens.add({
             targets: this.titleText,
@@ -112,11 +206,11 @@ class MainMenuScene extends Phaser.Scene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
-        
+
         // --- Play Button ---
         const playBtnBg = this.add.image(320, 160, 'menu_button').setDisplaySize(200, 48);
         playBtnBg.setInteractive({ useHandCursor: true });
-        
+
         const playText = this.add.text(320, 160, 'PLAY GAME', {
             fontSize: '16px',
             fill: '#ffffff',
@@ -125,26 +219,36 @@ class MainMenuScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 3
         }).setOrigin(0.5);
-        
+
         playBtnBg.on('pointerdown', () => {
-            const lvl = this.getHighestLevel();
-            this.scene.start('PlatformerScene', { levelId: lvl });
+            console.log("Play Button Clicked");
+            try {
+                this.sound.play('buttonclick');
+            } catch (e) {
+                console.warn("Audio play blocked:", e);
+            }
+            try {
+                const lvl = this.getHighestLevel();
+                this.scene.start('PlatformerScene', { levelId: lvl });
+            } catch (e) {
+                console.error("Failed to start PlatformerScene:", e);
+            }
         });
-        
+
         playBtnBg.on('pointerover', () => {
             playBtnBg.setTint(0x88ff88);
             playBtnBg.setAlpha(0.8);
         });
-        
+
         playBtnBg.on('pointerout', () => {
             playBtnBg.clearTint();
             playBtnBg.setAlpha(1.0);
         });
-        
+
         // --- Level Select Button ---
         const selectBtnBg = this.add.image(320, 220, 'menu_button').setDisplaySize(200, 48);
         selectBtnBg.setInteractive({ useHandCursor: true });
-        
+
         const selectText = this.add.text(320, 220, 'LEVEL SELECT', {
             fontSize: '16px',
             fill: '#ffffff',
@@ -153,27 +257,36 @@ class MainMenuScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 3
         }).setOrigin(0.5);
-        
+
         selectBtnBg.on('pointerdown', () => {
-            this.scene.start('LevelSelectScene');
+            try {
+                this.sound.play('buttonclick');
+            } catch (e) {
+                console.warn("Audio play blocked:", e);
+            }
+            try {
+                this.scene.start('LevelSelectScene');
+            } catch (e) {
+                console.error("Failed to start LevelSelectScene:", e);
+            }
         });
-        
+
         selectBtnBg.on('pointerover', () => {
             selectBtnBg.setTint(0x88ccff);
             selectBtnBg.setAlpha(0.8);
         });
-        
+
         selectBtnBg.on('pointerout', () => {
             selectBtnBg.clearTint();
             selectBtnBg.setAlpha(1.0);
         });
 
         // --- Players Toggle Button ---
-        this.isTwoPlayer = localStorage.getItem('PokiBonk_TwoPlayer') === 'true';
-        
+        this.isTwoPlayer = safeStorage.getItem('CrazyBonk_TwoPlayer') === 'true';
+
         const modeBtnBg = this.add.image(320, 280, 'menu_button').setDisplaySize(200, 48);
         modeBtnBg.setInteractive({ useHandCursor: true });
-        
+
         const getModeText = () => this.isTwoPlayer ? 'PLAYERS: 2 PLAYERS' : 'PLAYERS: 1 PLAYER';
         const modeText = this.add.text(320, 280, getModeText(), {
             fontSize: '16px',
@@ -183,30 +296,60 @@ class MainMenuScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 3
         }).setOrigin(0.5);
-        
+
         modeBtnBg.on('pointerdown', () => {
+            try {
+                this.sound.play('buttonclick');
+            } catch (e) {
+                console.warn("Audio play blocked:", e);
+            }
             this.isTwoPlayer = !this.isTwoPlayer;
-            localStorage.setItem('PokiBonk_TwoPlayer', this.isTwoPlayer ? 'true' : 'false');
+            safeStorage.setItem('CrazyBonk_TwoPlayer', this.isTwoPlayer ? 'true' : 'false');
             modeText.setText(getModeText());
         });
-        
+
         modeBtnBg.on('pointerover', () => {
             modeBtnBg.setTint(0xffff55);
             modeBtnBg.setAlpha(0.8);
         });
-        
+
         modeBtnBg.on('pointerout', () => {
             modeBtnBg.clearTint();
             modeBtnBg.setAlpha(1.0);
         });
+
+        // Fullscreen Toggle Button at top-right
+        const fsBtn = this.add.text(570, 20, '⛶ FULLSCREEN', {
+            fontSize: '12px',
+            fill: '#ffffff',
+            fontFamily: 'Courier',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(201);
+
+        fsBtn.on('pointerdown', () => {
+            try { this.sound.play('buttonclick'); } catch (e) {}
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            } else {
+                this.scale.startFullscreen();
+            }
+        });
+        fsBtn.on('pointerover', () => { fsBtn.setTint(0x88ff88); });
+        fsBtn.on('pointerout', () => { fsBtn.clearTint(); });
+
+        this.input.keyboard.on('keydown-F', () => {
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            } else {
+                this.scale.startFullscreen();
+            }
+        });
     }
-    
+
     getHighestLevel() {
-        try {
-            return parseInt(localStorage.getItem('PokiBonk_HighestLevel')) || 1;
-        } catch (error) {
-            return 1;
-        }
+        return parseInt(safeStorage.getItem('CrazyBonk_HighestLevel')) || 1;
     }
 }
 // --- Level Selection Scene ---
@@ -220,11 +363,12 @@ class LevelSelectScene extends Phaser.Scene {
     create() {
         // Tiled menu background
         this.bg = this.add.tileSprite(320, 180, 640, 360, 'menu_bg');
+        this.bg.setTileScale(1.40625, 1.40625);
         this.bg.setAlpha(0.35);
-        
+
         // Frame Panel (using assets/menu/png/Windows.png)
         this.panel = this.add.image(320, 190, 'menu_panel').setDisplaySize(540, 280);
-        
+
         // Header Title
         this.add.text(320, 32, 'ZOMBIE INVASION: SELECT LEVEL', {
             fontSize: '22px',
@@ -234,11 +378,11 @@ class LevelSelectScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 3
         }).setOrigin(0.5);
-        
+
         // Back to Main Menu Button at the bottom
         const backBtnBg = this.add.image(320, 310, 'menu_button').setDisplaySize(180, 44);
         backBtnBg.setInteractive({ useHandCursor: true });
-        
+
         const backText = this.add.text(320, 310, '◄ MENU', {
             fontSize: '15px',
             fill: '#ffffff',
@@ -247,29 +391,59 @@ class LevelSelectScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5);
-        
+
         backBtnBg.on('pointerdown', () => {
+            this.sound.play('buttonclick');
             this.scene.start('MainMenuScene');
         });
-        
+
         backBtnBg.on('pointerover', () => {
             backBtnBg.setTint(0xffaa55);
             backBtnBg.setAlpha(0.8);
         });
-        
+
         backBtnBg.on('pointerout', () => {
             backBtnBg.clearTint();
             backBtnBg.setAlpha(1.0);
         });
-        
-        this.currentTab = 0; 
+
+        this.currentTab = 0;
         this.createTabs();
         this.createLevelButtons();
+
+        // Fullscreen Toggle Button at top-right
+        const fsBtn = this.add.text(570, 20, '⛶ FULLSCREEN', {
+            fontSize: '12px',
+            fill: '#ffffff',
+            fontFamily: 'Courier',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(201);
+
+        fsBtn.on('pointerdown', () => {
+            try { this.sound.play('buttonclick'); } catch (e) {}
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            } else {
+                this.scale.startFullscreen();
+            }
+        });
+        fsBtn.on('pointerover', () => { fsBtn.setTint(0x88ff88); });
+        fsBtn.on('pointerout', () => { fsBtn.clearTint(); });
+
+        this.input.keyboard.on('keydown-F', () => {
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            } else {
+                this.scale.startFullscreen();
+            }
+        });
     }
     createTabs() {
         const tabs = ['VALLEY (1-12)', 'STEEL (13-25)', 'VAULT (26-38)', 'CASTLE (39-50)'];
         this.tabButtons = [];
-        
+
         tabs.forEach((tab, index) => {
             const x = 140 + index * 120;
             const y = 72;
@@ -280,25 +454,21 @@ class LevelSelectScene extends Phaser.Scene {
                 fontFamily: 'Courier',
                 fontStyle: 'bold'
             })
-            .setOrigin(0.5)
-            .setPadding(6)
-            .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => {
-                this.currentTab = index;
-                this.refreshUI();
-            });
+                .setOrigin(0.5)
+                .setPadding(6)
+                .setInteractive({ useHandCursor: true })
+                .on('pointerdown', () => {
+                    this.sound.play('buttonclick');
+                    this.currentTab = index;
+                    this.refreshUI();
+                });
             this.tabButtons.push(btn);
         });
     }
     createLevelButtons() {
         this.buttonsGroup = this.add.group();
-        
-        let highestLevel = 1;
-        try {
-            highestLevel = parseInt(localStorage.getItem('PokiBonk_HighestLevel')) || 1;
-        } catch (e) {
-            highestLevel = 1;
-        }
+
+        let highestLevel = parseInt(safeStorage.getItem('CrazyBonk_HighestLevel')) || 1;
         let startLevel = 1;
         let endLevel = 12;
         if (this.currentTab === 1) { startLevel = 13; endLevel = 25; }
@@ -325,7 +495,7 @@ class LevelSelectScene extends Phaser.Scene {
                 txtColor = '#ffffff';
                 label = l.toString() + (isCompleted ? ' ★' : '');
             }
-            
+
             // Draw visual button background from menu assets
             const btnBg = this.add.image(x, y, 'menu_button').setDisplaySize(72, 38);
             if (!isUnlocked) {
@@ -334,7 +504,7 @@ class LevelSelectScene extends Phaser.Scene {
                 btnBg.setTint(isCompleted ? 0xffcc44 : 0x44ff44);
             }
             this.buttonsGroup.add(btnBg);
-            
+
             const btn = this.add.text(x, y, label, {
                 fontSize: '15px',
                 fill: txtColor,
@@ -345,46 +515,29 @@ class LevelSelectScene extends Phaser.Scene {
                 stroke: '#000000',
                 strokeThickness: 2
             })
-            .setOrigin(0.5)
-            .setPadding(8)
-            .setFixedSize(65, 36);
-            
+                .setOrigin(0.5)
+                .setPadding(8)
+                .setFixedSize(65, 36);
+
             if (isUnlocked) {
                 btnBg.setInteractive({ useHandCursor: true });
                 btn.setInteractive({ useHandCursor: true })
-                   .on('pointerdown', () => {
-                       this.scene.start('PlatformerScene', { levelId: l });
-                   })
-                   .on('pointerover', () => {
-                       btnBg.setTint(0xffffff);
-                       btnBg.setAlpha(0.8);
-                       btn.setStyle({ fill: '#ffff00', backgroundColor: isCompleted ? '#ff9900' : '#00ff00' });
-                       btn.setAlpha(0.8);
-                   })
-                   .on('pointerout', () => {
-                       btnBg.setTint(isCompleted ? 0xffcc44 : 0x44ff44);
-                       btnBg.setAlpha(1.0);
-                       btn.setStyle({ fill: '#ffffff', backgroundColor: bgColor });
-                       btn.setAlpha(1.0);
-                   });
-            } else {
-                btnBg.setInteractive({ useHandCursor: true });
-                btn.setInteractive({ useHandCursor: true })
-                   .on('pointerdown', () => {
-                       this.watchAdToUnlockLevel(l);
-                   })
-                   .on('pointerover', () => {
-                       btnBg.setTint(0xffffff);
-                       btnBg.setAlpha(0.8);
-                       btn.setStyle({ fill: '#ffff00', backgroundColor: '#bb3333' });
-                       btn.setAlpha(0.8);
-                   })
-                   .on('pointerout', () => {
-                       btnBg.setTint(0x555555);
-                       btnBg.setAlpha(1.0);
-                       btn.setStyle({ fill: txtColor, backgroundColor: bgColor });
-                       btn.setAlpha(1.0);
-                   });
+                    .on('pointerdown', () => {
+                        this.sound.play('buttonclick');
+                        this.scene.start('PlatformerScene', { levelId: l });
+                    })
+                    .on('pointerover', () => {
+                        btnBg.setTint(0xffffff);
+                        btnBg.setAlpha(0.8);
+                        btn.setStyle({ fill: '#ffff00', backgroundColor: isCompleted ? '#ff9900' : '#00ff00' });
+                        btn.setAlpha(0.8);
+                    })
+                    .on('pointerout', () => {
+                        btnBg.setTint(isCompleted ? 0xffcc44 : 0x44ff44);
+                        btnBg.setAlpha(1.0);
+                        btn.setStyle({ fill: '#ffffff', backgroundColor: bgColor });
+                        btn.setAlpha(1.0);
+                    });
             }
             this.buttonsGroup.add(btn);
             index++;
@@ -400,28 +553,6 @@ class LevelSelectScene extends Phaser.Scene {
         });
         this.buttonsGroup.clear(true, true);
         this.createLevelButtons();
-    }
-    watchAdToUnlockLevel(levelId) {
-        if (typeof PokiSDK !== 'undefined') {
-            PokiSDK.rewardedBreak().then((success) => {
-                if (success) {
-                    this.unlockLevel(levelId);
-                }
-            });
-        } else {
-            this.unlockLevel(levelId);
-        }
-    }
-    unlockLevel(levelId) {
-        try {
-            const currentHighest = parseInt(localStorage.getItem('PokiBonk_HighestLevel')) || 1;
-            if (levelId > currentHighest) {
-                localStorage.setItem('PokiBonk_HighestLevel', levelId.toString());
-            }
-            this.refreshUI();
-        } catch (e) {
-            console.warn("Storage exception on unlock", e);
-        }
     }
 }
 // --- Gameplay Scene ---
@@ -439,52 +570,6 @@ class PlatformerScene extends Phaser.Scene {
         this.isPaused = false;
     }
     preload() {
-        // --- Load Environment & Tile Assets ---
-        this.load.image('bg_tile_1', 'assets/totalassets/png/Tiles/BGTile (1).png');
-        this.load.image('bg_tile_3', 'assets/totalassets/png/Tiles/BGTile (3).png');
-        this.load.image('bg_tile_4', 'assets/totalassets/png/Tiles/BGTile (4).png');
-        this.load.image('bg_tile_7', 'assets/totalassets/png/Tiles/BGTile (7).png');
-        this.load.image('tile_2', 'assets/totalassets/png/Tiles/Tile (2).png');
-        this.load.image('tile_5', 'assets/totalassets/png/Tiles/Tile (5).png');
-        this.load.image('tile_8', 'assets/totalassets/png/Tiles/Tile (8).png');
-        this.load.image('tile_14', 'assets/totalassets/png/Tiles/Tile (14).png');
-        this.load.image('barrel', 'assets/totalassets/png/Objects/Barrel (1).png');
-        this.load.image('menu_button', 'assets/menu/png/button_sliced.png');
-        // --- Load Hero Animation Frames ---
-        for (let i = 1; i <= 10; i++) {
-            this.load.image(`hero_idle_${i}`, `assets/hero/Idle (${i}).png`);
-            this.load.image(`hero_dead_${i}`, `assets/hero/Dead (${i}).png`);
-        }
-        for (let i = 1; i <= 8; i++) {
-            this.load.image(`hero_run_${i}`, `assets/hero/Run (${i}).png`);
-            this.load.image(`hero_hurt_${i}`, `assets/hero/Hurt (${i}).png`);
-        }
-        for (let i = 1; i <= 12; i++) {
-            this.load.image(`hero_jump_${i}`, `assets/hero/Jump (${i}).png`);
-        }
-        // --- Load Hero 2 (Player 2) Animation Frames ---
-        for (let i = 1; i <= 10; i++) {
-            this.load.image(`hero2_idle_${i}`, `assets/hero 2/Idle (${i}).png`);
-            this.load.image(`hero2_dead_${i}`, `assets/hero 2/Dead (${i}).png`);
-            this.load.image(`hero2_jump_${i}`, `assets/hero 2/Jump (${i}).png`);
-        }
-        for (let i = 1; i <= 8; i++) {
-            this.load.image(`hero2_run_${i}`, `assets/hero 2/Run (${i}).png`);
-        }
-        // --- Load Female Enemy Animation Frames ---
-        for (let i = 1; i <= 10; i++) {
-            this.load.image(`enemy_female_walk_${i}`, `assets/enemy/female/Walk (${i}).png`);
-        }
-        for (let i = 1; i <= 15; i++) {
-            this.load.image(`enemy_female_idle_${i}`, `assets/enemy/female/Idle (${i}).png`);
-        }
-        // --- Load Male Enemy Animation Frames ---
-        for (let i = 1; i <= 10; i++) {
-            this.load.image(`enemy_male_walk_${i}`, `assets/enemy/male/Walk (${i}).png`);
-        }
-        for (let i = 1; i <= 15; i++) {
-            this.load.image(`enemy_male_idle_${i}`, `assets/enemy/male/Idle (${i}).png`);
-        }
     }
     create() {
         this.ACCELERATION_X = 1200;
@@ -555,20 +640,45 @@ class PlatformerScene extends Phaser.Scene {
         createAnim('enemy_female_idle', 'enemy_female_idle_', 15, 12);
         createAnim('enemy_male_walk', 'enemy_male_walk_', 10, 12);
         createAnim('enemy_male_idle', 'enemy_male_idle_', 15, 12);
+
+        // Initialize coin dynamic group
+        this.coins = this.physics.add.group();
+
         this.createLevel();
         this.createPlayer();
         this.createEnemies();
         this.setupCollisions();
         this.setupInput();
+
+        // Select and play a random bgmusic track
+        this.bgMusicKey = 'bgmusic' + Phaser.Math.Between(1, 5);
+        this.bgMusic = this.sound.add(this.bgMusicKey, { loop: true, volume: 0.25 });
+        this.bgMusic.play();
+
+        // Handle scene shutdown to clean up looping music
+        this.events.on('shutdown', () => {
+            if (this.bgMusic) {
+                this.bgMusic.stop();
+            }
+        });
+
+        // Add 'F' keyboard shortcut listener to toggle fullscreen
+        this.input.keyboard.on('keydown-F', () => {
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            } else {
+                this.scale.startFullscreen();
+            }
+        });
     }
     createLevel() {
         const levelConfig = this.levelConfig;
         const highestLvl = this.getHighestLevel();
-        console.log(`Poki Game Log: Launching Level ${this.currentLevelId} (Max Run: ${highestLvl})`);
+        console.log(`Game Log: Launching Level ${this.currentLevelId} (Max Run: ${highestLvl})`);
         this.saveLevelRecord(this.currentLevelId);
-        if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStart();
         // Tiled Background
         this.bg = this.add.tileSprite(320, 180, 640, 360, levelConfig.bgKey);
+        this.bg.setTileScale(1.40625, 1.40625);
         this.bg.setDepth(-10);
         // Tiled ground floor
         this.floor = this.add.tileSprite(320, 340, 640, 40, levelConfig.tileKey);
@@ -576,12 +686,19 @@ class PlatformerScene extends Phaser.Scene {
         this.physics.add.existing(this.floor, true);
         this.floor.body.setSize(640, 40);
         this.platforms = this.physics.add.staticGroup();
-        levelConfig.platforms.forEach(p => {
+        levelConfig.platforms.forEach((p, index) => {
             const plat = this.add.tileSprite(p.x, p.y, p.w, p.h, levelConfig.tileKey);
             plat.setTileScale(0.0625, 0.0625);
             this.platforms.add(plat);
             plat.body.setSize(p.w, p.h);
             plat.isBonked = false;
+
+            // Designate special golden coin-dropping platforms deterministically
+            plat.isSpecial = ((index + levelConfig.levelId) % 2 === 0);
+            plat.hasCoin = plat.isSpecial;
+            if (plat.isSpecial) {
+                plat.setTint(0xffcc00); // Premium Golden Yellow
+            }
         });
         this.tntBlocks = this.physics.add.staticGroup();
         if (levelConfig.tntBlocks) {
@@ -597,8 +714,8 @@ class PlatformerScene extends Phaser.Scene {
         }
     }
     createPlayer() {
-        this.isTwoPlayer = localStorage.getItem('PokiBonk_TwoPlayer') === 'true';
-        
+        this.isTwoPlayer = safeStorage.getItem('CrazyBonk_TwoPlayer') === 'true';
+
         // Spawn Player 1
         const p1X = this.isTwoPlayer ? 240 : 320;
         this.player = this.physics.add.sprite(p1X, 300, 'hero_idle_1');
@@ -610,7 +727,7 @@ class PlatformerScene extends Phaser.Scene {
         this.player.body.setDragX(this.FRICTION);
         this.player.play('hero_idle');
         this.isInvulnerable = false;
-        
+
         // Spawn Player 2 if enabled
         if (this.isTwoPlayer) {
             this.player2 = this.physics.add.sprite(400, 300, 'hero2_idle_1');
@@ -672,29 +789,41 @@ class PlatformerScene extends Phaser.Scene {
         this.physics.add.collider(this.player, this.floor);
         this.physics.add.collider(this.player, this.platforms);
         this.physics.add.collider(this.player, this.tntBlocks);
-        
+
         if (this.isTwoPlayer && this.player2) {
             this.physics.add.collider(this.player2, this.floor);
             this.physics.add.collider(this.player2, this.platforms);
             this.physics.add.collider(this.player2, this.tntBlocks);
-            
+
             // Collide players when hitting each other
             this.physics.add.collider(this.player, this.player2);
         }
-        
+
         this.physics.add.collider(this.enemies, this.floor);
         this.physics.add.collider(this.enemies, this.platforms);
         this.physics.add.collider(this.enemies, this.tntBlocks);
-        
-        this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
-            if (this.isGameOver || this.isLevelComplete) return;
-            this.handleEnemyOverlap(player, enemy, false);
+
+        // Setup coin colliders and overlaps - explicitly passing this.player/this.player2 to prevent callback scope issues
+        this.physics.add.collider(this.coins, this.floor);
+        this.physics.add.collider(this.coins, this.platforms);
+        this.physics.add.overlap(this.player, this.coins, (dummyP, coin) => {
+            this.collectCoin(this.player, coin, false);
         });
-        
         if (this.isTwoPlayer && this.player2) {
-            this.physics.add.overlap(this.player2, this.enemies, (player2, enemy) => {
+            this.physics.add.overlap(this.player2, this.coins, (dummyP2, coin) => {
+                this.collectCoin(this.player2, coin, true);
+            });
+        }
+
+        this.physics.add.overlap(this.player, this.enemies, (dummyP, enemy) => {
+            if (this.isGameOver || this.isLevelComplete) return;
+            this.handleEnemyOverlap(this.player, enemy, false);
+        });
+
+        if (this.isTwoPlayer && this.player2) {
+            this.physics.add.overlap(this.player2, this.enemies, (dummyP2, enemy) => {
                 if (this.isGameOver || this.isLevelComplete) return;
-                this.handleEnemyOverlap(player2, enemy, true);
+                this.handleEnemyOverlap(this.player2, enemy, true);
             });
         }
     }
@@ -733,7 +862,7 @@ class PlatformerScene extends Phaser.Scene {
     }
     handlePlayerHit(playerSprite, enemy, isPlayer2) {
         const invulnFlag = isPlayer2 ? this.isInvulnerable2 : this.isInvulnerable;
-        if (invulnFlag || this.isGameOver || this.isLevelComplete) return;
+        if (invulnFlag || playerSprite.isCoinImmortal || this.isGameOver || this.isLevelComplete) return;
         this.lives--;
         this.updateLivesText();
         if (this.lives <= 0) {
@@ -773,6 +902,81 @@ class PlatformerScene extends Phaser.Scene {
             this.livesText.setText(`LIVES: ${hearts}`);
         }
     }
+    collectCoin(playerSprite, coin, isPlayer2) {
+        if (!coin.active || coin.isCollectible === false) return;
+
+        // Prevent collecting the coin from underneath the platform
+        if (playerSprite.body.bottom > coin.y + 20) {
+            return;
+        }
+
+        coin.destroy();
+        this.sound.play('coin', { volume: 0.6 });
+
+        // 4 randomized coin behaviors
+        const effect = Phaser.Math.Between(1, 4);
+
+        if (effect === 1) {
+            // Option 1: Increase player health by 1
+            this.lives = Math.min(this.lives + 1, 5);
+            this.updateLivesText();
+            this.createFloatingText(playerSprite.x, playerSprite.y - 30, '+1 LIFE!');
+        } else if (effect === 2) {
+            // Option 2: Increase the score
+            this.score += 500;
+            this.scoreText.setText('SCORE: ' + this.score);
+            this.createFloatingText(playerSprite.x, playerSprite.y - 30, '+500 SCORE!');
+        } else if (effect === 3) {
+            // Option 3: Speed boost
+            this.sound.play('power_up', { volume: 0.6 });
+            playerSprite.speedBoosted = true;
+            playerSprite.setTint(0x55ff55); // Highlight green for speed
+            this.createFloatingText(playerSprite.x, playerSprite.y - 30, 'SPEED BOOST!');
+
+            if (playerSprite.speedTimer) playerSprite.speedTimer.remove();
+            playerSprite.speedTimer = this.time.delayedCall(8000, () => {
+                playerSprite.speedBoosted = false;
+                // Only clear tint if not currently coin-immortal
+                if (!playerSprite.isCoinImmortal) {
+                    playerSprite.clearTint();
+                } else {
+                    playerSprite.setTint(0xffd700); // Revert to gold tint
+                }
+                playerSprite.body.setMaxVelocity(this.MAX_SPEED_X, this.MAX_SPEED_Y);
+            });
+        } else if (effect === 4) {
+            // Option 4: Immortality
+            this.sound.play('power_up', { volume: 0.6 });
+            playerSprite.isCoinImmortal = true;
+            playerSprite.setTint(0xffd700); // Highlight gold
+            this.createFloatingText(playerSprite.x, playerSprite.y - 30, 'IMMORTALITY!');
+
+            // Pulse flashing alpha animation
+            if (playerSprite.immortalTween) playerSprite.immortalTween.remove();
+            playerSprite.immortalTween = this.tweens.add({
+                targets: playerSprite,
+                alpha: 0.4,
+                duration: 150,
+                yoyo: true,
+                repeat: -1
+            });
+
+            if (playerSprite.immortalTimer) playerSprite.immortalTimer.remove();
+            playerSprite.immortalTimer = this.time.delayedCall(8000, () => {
+                playerSprite.isCoinImmortal = false;
+                if (playerSprite.immortalTween) {
+                    playerSprite.immortalTween.remove();
+                    playerSprite.alpha = 1.0;
+                }
+                // Revert to green tint if still speed boosted, otherwise clear tint
+                if (playerSprite.speedBoosted) {
+                    playerSprite.setTint(0x55ff55);
+                } else {
+                    playerSprite.clearTint();
+                }
+            });
+        }
+    }
     incrementKills() {
         if (this.isGameOver || this.isLevelComplete) return;
         this.killsCount++;
@@ -786,9 +990,13 @@ class PlatformerScene extends Phaser.Scene {
         this.isLevelComplete = true;
         this.physics.pause();
         this.tweens.pauseAll();
-        if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStop();
         // Unlock next level in localStorage
         this.saveLevelRecord(this.currentLevelId + 1);
+
+        // Stop music and play victory sound
+        if (this.bgMusic) this.bgMusic.stop();
+        this.sound.play('levelcomplete', { volume: 0.7 });
+
         // Semitransparent dark overlay
         this.add.rectangle(320, 180, 640, 360, 0x000000, 0.75).setDepth(140);
         this.victoryText = this.add.text(320, 130, 'LEVEL COMPLETED!', {
@@ -811,7 +1019,9 @@ class PlatformerScene extends Phaser.Scene {
                 .setDepth(150)
                 .setInteractive({ useHandCursor: true })
                 .on('pointerdown', () => {
-                    this.scene.start('PlatformerScene', { levelId: this.currentLevelId + 1 });
+                    this.sound.play('buttonclick');
+                    const nextLvl = this.currentLevelId + 1;
+                    this.scene.start('PlatformerScene', { levelId: nextLvl });
                 });
         } else {
             this.victoryText.setText('GAME COMPLETED!');
@@ -835,6 +1045,7 @@ class PlatformerScene extends Phaser.Scene {
             .setDepth(150)
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
+                this.sound.play('buttonclick');
                 this.scene.start('LevelSelectScene');
             });
     }
@@ -843,7 +1054,7 @@ class PlatformerScene extends Phaser.Scene {
         this.isJumping = false;
         this.isJumping2 = false;
         this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-        
+
         // Player 1 WASD keys
         this.wasd = {
             up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
@@ -853,22 +1064,13 @@ class PlatformerScene extends Phaser.Scene {
         };
     }
     saveLevelRecord(levelIndex) {
-        try {
-            const currentHighest = parseInt(localStorage.getItem('PokiBonk_HighestLevel')) || 1;
-            if (levelIndex > currentHighest) {
-                localStorage.setItem('PokiBonk_HighestLevel', levelIndex.toString());
-            }
-        } catch (error) {
-            console.warn("Storage Exception (Incognito/Private enabled, skipping sync)", error);
+        const currentHighest = parseInt(safeStorage.getItem('CrazyBonk_HighestLevel')) || 1;
+        if (levelIndex > currentHighest) {
+            safeStorage.setItem('CrazyBonk_HighestLevel', levelIndex.toString());
         }
     }
     getHighestLevel() {
-        try {
-            return parseInt(localStorage.getItem('PokiBonk_HighestLevel')) || 1;
-        } catch (error) {
-            console.warn("Storage Exception (Incognito/Private enabled, defaulting to 1)", error);
-            return 1;
-        }
+        return parseInt(safeStorage.getItem('CrazyBonk_HighestLevel')) || 1;
     }
     triggerGameOver() {
         if (this.isGameOver) return;
@@ -879,48 +1081,21 @@ class PlatformerScene extends Phaser.Scene {
         }
         this.physics.pause();
         this.tweens.pauseAll();
-        if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStop();
+
+        // Stop music and play game over wasted track
+        if (this.bgMusic) this.bgMusic.stop();
+        this.sound.play('wasted', { volume: 0.7 });
+
         this.gameOverText = this.add.text(320, 160, 'WASTED', { fontSize: '56px', fill: '#ff0000', fontStyle: 'bold' }).setOrigin(0.5).setDepth(150);
-        this.extraLifeBtn = this.add.text(320, 230, '► WATCH AD FOR EXTRA LIFE', { fontSize: '24px', fill: '#ffff00', fontStyle: 'bold', backgroundColor: '#00000088' })
+        this.retryBtn = this.add.text(320, 230, '► RETRY', { fontSize: '24px', fill: '#ffff00', fontStyle: 'bold', backgroundColor: '#00000088' })
             .setOrigin(0.5)
             .setPadding(8)
             .setDepth(150)
             .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => this.watchRewardedAd());
-    }
-    watchRewardedAd() {
-        if (typeof PokiSDK !== 'undefined') {
-            PokiSDK.rewardedBreak().then((success) => {
-                if (success) {
-                    this.resumeWithExtraLife();
-                } else {
-                    this.extraLifeBtn.setText('[ AD CANCELLED / UNAVAILABLE ]');
-                }
+            .on('pointerdown', () => {
+                this.sound.play('buttonclick');
+                this.scene.start('PlatformerScene', { levelId: this.currentLevelId });
             });
-        } else {
-            this.resumeWithExtraLife();
-        }
-    }
-    resumeWithExtraLife() {
-        this.gameOverText.destroy();
-        this.extraLifeBtn.destroy();
-        this.enemies.children.iterate((enemy) => {
-            if (enemy && enemy.active) enemy.destroy();
-        });
-        this.isGameOver = false;
-        this.lives = 5;
-        this.updateLivesText();
-        this.physics.resume();
-        this.tweens.resumeAll();
-        if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStart();
-        
-        this.player.play('hero_idle');
-        this.player.body.setVelocityY(-400);
-        
-        if (this.isTwoPlayer && this.player2) {
-            this.player2.play('hero2_idle');
-            this.player2.body.setVelocityY(-400);
-        }
     }
     update() {
         if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
@@ -928,7 +1103,7 @@ class PlatformerScene extends Phaser.Scene {
                 this.togglePause();
             }
         }
-        
+
         if (this.isPaused || this.isGameOver || this.isLevelComplete) return;
         this.handlePlayerMovement();
         this.updatePlayerAnimations();
@@ -941,8 +1116,8 @@ class PlatformerScene extends Phaser.Scene {
             this.physics.pause();
             this.tweens.pauseAll();
             if (this.spawnEvent) this.spawnEvent.paused = true;
-            
-            // Pause all animations
+
+            // Pause all animations and bg music
             this.player.anims.pause();
             if (this.isTwoPlayer && this.player2) {
                 this.player2.anims.pause();
@@ -952,10 +1127,11 @@ class PlatformerScene extends Phaser.Scene {
                     enemy.anims.pause();
                 }
             });
-            
+            if (this.bgMusic) this.bgMusic.pause();
+
             // Create Pause UI
             this.pauseOverlay = this.add.rectangle(320, 180, 640, 360, 0x000000, 0.75).setDepth(200);
-            
+
             this.pauseTitle = this.add.text(320, 85, 'GAME PAUSED', {
                 fontSize: '28px',
                 fill: '#ffff00',
@@ -964,15 +1140,18 @@ class PlatformerScene extends Phaser.Scene {
                 stroke: '#000000',
                 strokeThickness: 4
             }).setOrigin(0.5).setDepth(201);
-            
+
             // --- Resume Button ---
             this.resumeBtn = this.add.image(320, 155, 'menu_button').setDisplaySize(180, 44).setDepth(201);
             this.resumeBtn.setInteractive({ useHandCursor: true });
             this.resumeText = this.add.text(320, 155, 'RESUME', {
                 fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
             }).setOrigin(0.5).setDepth(201);
-            
-            this.resumeBtn.on('pointerdown', () => this.togglePause());
+
+            this.resumeBtn.on('pointerdown', () => {
+                this.sound.play('buttonclick');
+                this.togglePause();
+            });
             this.resumeBtn.on('pointerover', () => {
                 this.resumeBtn.setTint(0x88ff88);
                 this.resumeBtn.setAlpha(0.8);
@@ -981,16 +1160,16 @@ class PlatformerScene extends Phaser.Scene {
                 this.resumeBtn.clearTint();
                 this.resumeBtn.setAlpha(1.0);
             });
-            
+
             // --- Level Select Button ---
             this.lvlSelectBtn = this.add.image(320, 215, 'menu_button').setDisplaySize(180, 44).setDepth(201);
             this.lvlSelectBtn.setInteractive({ useHandCursor: true });
             this.lvlSelectText = this.add.text(320, 215, 'LEVEL SELECT', {
                 fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
             }).setOrigin(0.5).setDepth(201);
-            
+
             this.lvlSelectBtn.on('pointerdown', () => {
-                if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStop();
+                this.sound.play('buttonclick');
                 this.scene.start('LevelSelectScene');
             });
             this.lvlSelectBtn.on('pointerover', () => {
@@ -1001,16 +1180,16 @@ class PlatformerScene extends Phaser.Scene {
                 this.lvlSelectBtn.clearTint();
                 this.lvlSelectBtn.setAlpha(1.0);
             });
-            
+
             // --- Main Menu Button ---
             this.mainMenuBtn = this.add.image(320, 275, 'menu_button').setDisplaySize(180, 44).setDepth(201);
             this.mainMenuBtn.setInteractive({ useHandCursor: true });
             this.mainMenuText = this.add.text(320, 275, 'MAIN MENU', {
                 fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
             }).setOrigin(0.5).setDepth(201);
-            
+
             this.mainMenuBtn.on('pointerdown', () => {
-                if (typeof PokiSDK !== 'undefined') PokiSDK.gameplayStop();
+                this.sound.play('buttonclick');
                 this.scene.start('MainMenuScene');
             });
             this.mainMenuBtn.on('pointerover', () => {
@@ -1021,9 +1200,33 @@ class PlatformerScene extends Phaser.Scene {
                 this.mainMenuBtn.clearTint();
                 this.mainMenuBtn.setAlpha(1.0);
             });
+
+            // --- Fullscreen Button ---
+            this.fsBtn = this.add.image(320, 330, 'menu_button').setDisplaySize(180, 44).setDepth(201);
+            this.fsBtn.setInteractive({ useHandCursor: true });
+            this.fsText = this.add.text(320, 330, '⛶ FULLSCREEN', {
+                fontSize: '14px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
+            }).setOrigin(0.5).setDepth(201);
+
+            this.fsBtn.on('pointerdown', () => {
+                try { this.sound.play('buttonclick'); } catch (e) {}
+                if (this.scale.isFullscreen) {
+                    this.scale.stopFullscreen();
+                } else {
+                    this.scale.startFullscreen();
+                }
+            });
+            this.fsBtn.on('pointerover', () => {
+                this.fsBtn.setTint(0x88ff88);
+                this.fsBtn.setAlpha(0.8);
+            });
+            this.fsBtn.on('pointerout', () => {
+                this.fsBtn.clearTint();
+                this.fsBtn.setAlpha(1.0);
+            });
         } else {
             this.isPaused = false;
-            
+
             // Clean up UI
             this.pauseOverlay.destroy();
             this.pauseTitle.destroy();
@@ -1033,12 +1236,15 @@ class PlatformerScene extends Phaser.Scene {
             this.lvlSelectText.destroy();
             this.mainMenuBtn.destroy();
             this.mainMenuText.destroy();
-            
-            // Resume physics and spawning
+            if (this.fsBtn) this.fsBtn.destroy();
+            if (this.fsText) this.fsText.destroy();
+
+            // Resume physics, spawning, and bg music
             this.physics.resume();
             this.tweens.resumeAll();
             if (this.spawnEvent) this.spawnEvent.paused = false;
-            
+            if (this.bgMusic) this.bgMusic.resume();
+
             // Resume animations
             this.player.anims.resume();
             if (this.isTwoPlayer && this.player2) {
@@ -1053,7 +1259,7 @@ class PlatformerScene extends Phaser.Scene {
     }
     updatePlayerAnimations() {
         if (this.isGameOver) return;
-        
+
         // Player 1 Animations
         if (this.isInvulnerable && this.player.anims.currentAnim && this.player.anims.currentAnim.key === 'hero_hurt' && !this.player.anims.currentFrame.isLast) {
             // Wait for hurt animation to finish
@@ -1158,11 +1364,16 @@ class PlatformerScene extends Phaser.Scene {
         });
     }
     handlePlayerMovement() {
+        // Player 1 Speed adjustments
+        const acc1 = this.player.speedBoosted ? 1800 : this.ACCELERATION_X;
+        const maxSpeed1 = this.player.speedBoosted ? 450 : this.MAX_SPEED_X;
+        this.player.body.setMaxVelocity(maxSpeed1, this.MAX_SPEED_Y);
+
         // Player 1 WASD Controls
         if (this.wasd.left.isDown) {
-            this.player.body.setAccelerationX(-this.ACCELERATION_X);
+            this.player.body.setAccelerationX(-acc1);
         } else if (this.wasd.right.isDown) {
-            this.player.body.setAccelerationX(this.ACCELERATION_X);
+            this.player.body.setAccelerationX(acc1);
         } else {
             this.player.body.setAccelerationX(0);
         }
@@ -1170,6 +1381,7 @@ class PlatformerScene extends Phaser.Scene {
         if (this.wasd.up.isDown && isGrounded1) {
             this.player.body.setVelocityY(this.JUMP_VELOCITY);
             this.isJumping = true;
+            this.sound.play('jump', { volume: 0.5 });
         }
         if (this.wasd.up.isUp && this.isJumping && this.player.body.velocity.y < 0) {
             this.player.body.setVelocityY(this.player.body.velocity.y * 0.5);
@@ -1181,10 +1393,14 @@ class PlatformerScene extends Phaser.Scene {
 
         // Player 2 Arrow Key Controls
         if (this.isTwoPlayer && this.player2 && this.player2.active) {
+            const acc2 = this.player2.speedBoosted ? 1800 : this.ACCELERATION_X;
+            const maxSpeed2 = this.player2.speedBoosted ? 450 : this.MAX_SPEED_X;
+            this.player2.body.setMaxVelocity(maxSpeed2, this.MAX_SPEED_Y);
+
             if (this.cursors.left.isDown) {
-                this.player2.body.setAccelerationX(-this.ACCELERATION_X);
+                this.player2.body.setAccelerationX(-acc2);
             } else if (this.cursors.right.isDown) {
-                this.player2.body.setAccelerationX(this.ACCELERATION_X);
+                this.player2.body.setAccelerationX(acc2);
             } else {
                 this.player2.body.setAccelerationX(0);
             }
@@ -1192,6 +1408,7 @@ class PlatformerScene extends Phaser.Scene {
             if (this.cursors.up.isDown && isGrounded2) {
                 this.player2.body.setVelocityY(this.JUMP_VELOCITY);
                 this.isJumping2 = true;
+                this.sound.play('jump', { volume: 0.5 });
             }
             if (this.cursors.up.isUp && this.isJumping2 && this.player2.body.velocity.y < 0) {
                 this.player2.body.setVelocityY(this.player2.body.velocity.y * 0.5);
@@ -1235,6 +1452,7 @@ class PlatformerScene extends Phaser.Scene {
     triggerTNT(tntBlock) {
         tntBlock.isBonked = true;
         tntBlock.hitsRemaining--;
+        this.sound.play('tntexplosion', { volume: 0.7 });
         // Visual flash & shockwave for every hit
         const flash = this.add.rectangle(320, 180, 640, 360, 0xffffff);
         flash.alpha = 0.5;
@@ -1291,6 +1509,7 @@ class PlatformerScene extends Phaser.Scene {
     triggerBonk(platform, impactX, impactY) {
         platform.isBonked = true;
         const originalY = platform.y;
+        this.sound.play('hit', { volume: 0.6 });
         this.tweens.add({
             targets: platform,
             y: originalY - 4,
@@ -1301,6 +1520,37 @@ class PlatformerScene extends Phaser.Scene {
                 platform.isBonked = false;
             }
         });
+
+        // Spawn coin if platform is special and contains a coin
+        if (platform.isSpecial && platform.hasCoin) {
+            platform.hasCoin = false;
+            platform.setTint(0x888888); // Spent platforms color fade
+
+            const coin = this.coins.create(platform.x, platform.body.top - 20, 'coin');
+            coin.setScale(0.005);
+            coin.body.setCollideWorldBounds(true);
+            coin.body.setBounce(0.3);
+            coin.body.setGravityY(1000);
+            coin.body.setVelocityY(-400); // Pop upward
+            coin.body.setVelocityX(Phaser.Math.Between(-80, 80)); // Pop dynamic angle
+            coin.isCollectible = false;
+
+            // Make the coin collectible after 300ms, ensuring it arches upward first
+            this.time.delayedCall(300, () => {
+                if (coin && coin.active) {
+                    coin.isCollectible = true;
+                }
+            });
+
+            // Continuous spin
+            this.tweens.add({
+                targets: coin,
+                angle: 360,
+                duration: 1000,
+                repeat: -1
+            });
+        }
+
         const impactFlash = this.add.circle(impactX, impactY, 4, 0xffffff);
         this.tweens.add({
             targets: impactFlash,
@@ -1360,3 +1610,4 @@ const config = {
     scene: [MainMenuScene, LevelSelectScene, PlatformerScene]
 };
 const game = new Phaser.Game(config);
+window.game = game;

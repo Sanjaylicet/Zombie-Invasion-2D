@@ -5,25 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zombie Invasion</title>
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
             background-color: #111; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             overflow: hidden; 
         }
-        canvas {
-            display: block;
-        }
     </style>
-    
-    <!-- Task 1: Add Poki SDK Mock hook (Must be declared before local engine runs) -->
-    <script src="https://game-cdn.poki.com/scripts/v0/poki-sdk.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="phaser.min.js"></script>
 </head>
 <body>
     <script src="game.js"></script>

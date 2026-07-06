@@ -18,6 +18,197 @@ const safeStorage = {
     }
 };
 
+// --- Skeuomorphic Theme Helpers ---
+function generateSkeuomorphicTextures(scene) {
+    const drawMetalPlate = (key, w, h) => {
+        let g = scene.make.graphics({ x: 0, y: 0, add: false });
+        // Base plate (metallic grey)
+        g.fillStyle(0x282c34, 1.0);
+        g.fillRect(0, 0, w, h);
+        
+        // Brushed metal lines
+        g.lineStyle(1, 0x21252b, 0.4);
+        for (let i = 2; i < h; i += 4) {
+            g.lineBetween(2, i, w - 2, i);
+        }
+        
+        // Outer 3D bevel borders
+        g.lineStyle(3, 0xabb2bf, 0.8); // Top/Left highlight
+        g.lineBetween(1, 1, w - 1, 1);
+        g.lineBetween(1, 1, 1, h - 1);
+        g.lineStyle(3, 0x181a1f, 0.9); // Bottom/Right shadow
+        g.lineBetween(1, h - 1, w - 1, h - 1);
+        g.lineBetween(w - 1, 1, w - 1, h - 1);
+        
+        // Recessed inner display screen
+        g.fillStyle(0x15181e, 0.95);
+        g.fillRect(16, 16, w - 32, h - 32);
+        
+        // Inner display screen bevel (recessed shadow)
+        g.lineStyle(2, 0x090b0e, 0.9); // Top/Left shadow
+        g.lineBetween(15, 15, w - 15, 15);
+        g.lineBetween(15, 15, 15, h - 15);
+        g.lineStyle(2, 0x3e4451, 0.6); // Bottom/Right highlight
+        g.lineBetween(15, h - 15, w - 15, h - 15);
+        g.lineBetween(w - 15, 15, w - 15, h - 15);
+        
+        // Metal rivets/screws in the 4 corners
+        const drawScrew = (x, y) => {
+            g.fillStyle(0x5c6370, 1.0);
+            g.fillCircle(x, y, 6);
+            g.lineStyle(1.5, 0x1e2227, 1.0);
+            g.strokeCircle(x, y, 6);
+            g.lineStyle(1.5, 0x181a1f, 1.0);
+            g.lineBetween(x - 4, y - 1, x + 4, y + 1);
+            g.fillStyle(0xffffff, 0.4);
+            g.fillCircle(x - 2, y - 2, 1.5);
+        };
+        drawScrew(8, 8);
+        drawScrew(w - 8, 8);
+        drawScrew(8, h - 8);
+        drawScrew(w - 8, h - 8);
+        
+        g.generateTexture(key, w, h);
+        g.destroy();
+    };
+
+    const drawButton = (key, w, h, themeColor, isPressed, isHover) => {
+        let g = scene.make.graphics({ x: 0, y: 0, add: false });
+        
+        let colors = {
+            red:    { base: 0x5a0000, topStart: 0xff3b30, topEnd: 0x990000, border: 0xff8888, hoverStart: 0xff5c52, hoverEnd: 0xb31a1a, pressed: 0x770000 },
+            green:  { base: 0x004d00, topStart: 0x4cd964, topEnd: 0x007f00, border: 0xa1f7b0, hoverStart: 0x73e285, hoverEnd: 0x009900, pressed: 0x006000 },
+            blue:   { base: 0x002d5a, topStart: 0x007aff, topEnd: 0x004499, border: 0x88ccff, hoverStart: 0x3395ff, hoverEnd: 0x005cc2, pressed: 0x003377 },
+            yellow: { base: 0x5a4800, topStart: 0xffcc00, topEnd: 0x997a00, border: 0xffe680, hoverStart: 0xffdd33, hoverEnd: 0xb38f00, pressed: 0x775f00 },
+            grey:   { base: 0x1c1e22, topStart: 0x494e57, topEnd: 0x2c2f35, border: 0x6e7682, hoverStart: 0x5a606b, hoverEnd: 0x3a3e46, pressed: 0x1d2024 }
+        }[themeColor] || { base: 0x222222, topStart: 0x777777, topEnd: 0x444444, border: 0x999999, hoverStart: 0x888888, hoverEnd: 0x555555, pressed: 0x333333 };
+
+        const radius = 6;
+        let startColor = isHover ? colors.hoverStart : colors.topStart;
+        let endColor = isHover ? colors.hoverEnd : colors.topEnd;
+        
+        if (!isPressed) {
+            // Extruded 3D base side
+            g.fillStyle(colors.base, 1.0);
+            g.fillRoundedRect(0, 4, w, h - 4, radius);
+            g.fillStyle(colors.base & 0x7f7f7f, 1.0);
+            g.fillRoundedRect(0, h - 2, w, 2, radius);
+            
+            // Raised surface (shifted up by 4px)
+            g.fillStyle(endColor, 1.0);
+            g.fillRoundedRect(0, 0, w, h - 4, radius);
+            
+            // 3D Bevel highlight
+            g.lineStyle(1.5, colors.border, 0.7);
+            g.strokeRoundedRect(0.75, 0.75, w - 1.5, h - 4 - 1.5, radius);
+            
+            // Top gloss overlay
+            g.fillStyle(0xffffff, 0.22);
+            g.fillRoundedRect(3, 3, w - 6, (h - 4) / 2.5, { tl: radius - 2, tr: radius - 2, bl: 2, br: 2 });
+        } else {
+            // Pressed surface (shifted down by 3px, minimal base)
+            g.fillStyle(colors.base, 1.0);
+            g.fillRoundedRect(0, h - 1, w, 1, radius);
+            
+            g.fillStyle(colors.pressed, 1.0);
+            g.fillRoundedRect(0, 3, w, h - 4, radius);
+            
+            g.lineStyle(1.5, colors.border, 0.35);
+            g.strokeRoundedRect(0.75, 3.75, w - 1.5, h - 4 - 1.5, radius);
+            
+            g.fillStyle(0xffffff, 0.1);
+            g.fillRoundedRect(3, 6, w - 6, (h - 4) / 3, { tl: radius - 2, tr: radius - 2, bl: 1, br: 1 });
+        }
+        
+        g.generateTexture(key, w, h);
+        g.destroy();
+    };
+
+    // Generate Panels
+    drawMetalPlate('panel_main_menu', 420, 270);
+    drawMetalPlate('panel_level_select', 540, 280);
+    drawMetalPlate('panel_pause', 220, 360);
+
+    // Generate Large Buttons (200x48)
+    drawButton('btn_play_normal', 200, 48, 'green', false, false);
+    drawButton('btn_play_hover', 200, 48, 'green', false, true);
+    drawButton('btn_play_pressed', 200, 48, 'green', true, false);
+
+    drawButton('btn_select_normal', 200, 48, 'blue', false, false);
+    drawButton('btn_select_hover', 200, 48, 'blue', false, true);
+    drawButton('btn_select_pressed', 200, 48, 'blue', true, false);
+
+    drawButton('btn_players_normal', 200, 48, 'yellow', false, false);
+    drawButton('btn_players_hover', 200, 48, 'yellow', false, true);
+    drawButton('btn_players_pressed', 200, 48, 'yellow', true, false);
+
+    // Generate Medium Buttons (180x44)
+    drawButton('btn_back_normal', 180, 44, 'red', false, false);
+    drawButton('btn_back_hover', 180, 44, 'red', false, true);
+    drawButton('btn_back_pressed', 180, 44, 'red', true, false);
+
+    drawButton('btn_resume_normal', 180, 44, 'green', false, false);
+    drawButton('btn_resume_hover', 180, 44, 'green', false, true);
+    drawButton('btn_resume_pressed', 180, 44, 'green', true, false);
+
+    drawButton('btn_lvlselect_normal', 180, 44, 'blue', false, false);
+    drawButton('btn_lvlselect_hover', 180, 44, 'blue', false, true);
+    drawButton('btn_lvlselect_pressed', 180, 44, 'blue', true, false);
+
+    drawButton('btn_fullscreen_normal', 180, 44, 'yellow', false, false);
+    drawButton('btn_fullscreen_hover', 180, 44, 'yellow', false, true);
+    drawButton('btn_fullscreen_pressed', 180, 44, 'yellow', true, false);
+
+    // Generate Small Buttons (110x28) for Fullscreen small
+    drawButton('btn_fs_small_normal', 110, 28, 'yellow', false, false);
+    drawButton('btn_fs_small_hover', 110, 28, 'yellow', false, true);
+    drawButton('btn_fs_small_pressed', 110, 28, 'yellow', true, false);
+
+    // Generate Level Cells (72x38)
+    drawButton('level_btn_locked_normal', 72, 38, 'grey', true, false);
+    
+    drawButton('level_btn_unlocked_normal', 72, 38, 'green', false, false);
+    drawButton('level_btn_unlocked_hover', 72, 38, 'green', false, true);
+    drawButton('level_btn_unlocked_pressed', 72, 38, 'green', true, false);
+
+    drawButton('level_btn_completed_normal', 72, 38, 'yellow', false, false);
+    drawButton('level_btn_completed_hover', 72, 38, 'yellow', false, true);
+    drawButton('level_btn_completed_pressed', 72, 38, 'yellow', true, false);
+
+    // Tab buttons
+    drawButton('tab_active', 110, 28, 'yellow', false, false);
+    drawButton('tab_inactive', 110, 28, 'grey', true, false);
+}
+
+function makeTactileButton(scene, imageObj, textObj, normalKey, hoverKey, pressedKey, callback) {
+    imageObj.setInteractive({ useHandCursor: true });
+    const origImgY = imageObj.y;
+    const origTxtY = textObj ? textObj.y : 0;
+    
+    imageObj.on('pointerover', () => {
+        imageObj.setTexture(hoverKey);
+    });
+    
+    imageObj.on('pointerout', () => {
+        imageObj.setTexture(normalKey);
+        imageObj.y = origImgY;
+        if (textObj) textObj.y = origTxtY;
+    });
+    
+    imageObj.on('pointerdown', () => {
+        imageObj.setTexture(pressedKey);
+        imageObj.y = origImgY + 3; // tactile shift down by 3px
+        if (textObj) textObj.y = origTxtY + 3;
+    });
+    
+    imageObj.on('pointerup', () => {
+        imageObj.setTexture(hoverKey);
+        imageObj.y = origImgY;
+        if (textObj) textObj.y = origTxtY;
+        if (callback) callback();
+    });
+}
+
 // --- Seeded Deterministic Level Generator ---
 function getLevelConfig(levelId) {
     let bgKey = 'bg_tile_1';
@@ -94,19 +285,7 @@ class MainMenuScene extends Phaser.Scene {
         this.load.image('menu_bg', 'assets/totalassets/png/Tiles/BGTile (1).png');
         
         // Dynamically generate textures
-        let panelGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        panelGraphics.fillStyle(0x111625, 0.92);
-        panelGraphics.fillRoundedRect(0, 0, 200, 200, 12);
-        panelGraphics.lineStyle(4, 0x00d2ff, 1.0);
-        panelGraphics.strokeRoundedRect(2, 2, 196, 196, 12);
-        panelGraphics.generateTexture('menu_panel', 200, 200);
-
-        let buttonGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        buttonGraphics.fillStyle(0xffffff, 0.85);
-        buttonGraphics.fillRoundedRect(0, 0, 100, 50, 6);
-        buttonGraphics.lineStyle(3, 0xffffff, 1.0);
-        buttonGraphics.strokeRoundedRect(1, 1, 98, 48, 6);
-        buttonGraphics.generateTexture('menu_button', 100, 50);
+        generateSkeuomorphicTextures(this);
 
         // Preload sounds
         this.load.audio('buttonclick', 'sounds/buttonclick.mp3');
@@ -182,8 +361,7 @@ class MainMenuScene extends Phaser.Scene {
         this.bg.setAlpha(0.35);
 
         // Frame Panel
-        this.panel = this.add.image(320, 190, 'menu_panel');
-        this.panel.setDisplaySize(420, 270);
+        this.panel = this.add.image(320, 190, 'panel_main_menu');
 
         // Title Text
         this.titleText = this.add.text(320, 80, 'ZOMBIE INVASION', {
@@ -193,7 +371,7 @@ class MainMenuScene extends Phaser.Scene {
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 6
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(202);
 
         // Pulsing Title Animation
         this.tweens.add({
@@ -208,19 +386,17 @@ class MainMenuScene extends Phaser.Scene {
         });
 
         // --- Play Button ---
-        const playBtnBg = this.add.image(320, 160, 'menu_button').setDisplaySize(200, 48);
-        playBtnBg.setInteractive({ useHandCursor: true });
-
-        const playText = this.add.text(320, 160, 'PLAY GAME', {
+        const playBtnBg = this.add.image(320, 160, 'btn_play_normal').setDisplaySize(200, 48);
+        const playText = this.add.text(320, 158, 'PLAY GAME', {
             fontSize: '16px',
             fill: '#ffffff',
             fontFamily: 'Courier',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 3
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(202);
 
-        playBtnBg.on('pointerdown', () => {
+        makeTactileButton(this, playBtnBg, playText, 'btn_play_normal', 'btn_play_hover', 'btn_play_pressed', () => {
             console.log("Play Button Clicked");
             try {
                 this.sound.play('buttonclick');
@@ -235,30 +411,18 @@ class MainMenuScene extends Phaser.Scene {
             }
         });
 
-        playBtnBg.on('pointerover', () => {
-            playBtnBg.setTint(0x88ff88);
-            playBtnBg.setAlpha(0.8);
-        });
-
-        playBtnBg.on('pointerout', () => {
-            playBtnBg.clearTint();
-            playBtnBg.setAlpha(1.0);
-        });
-
         // --- Level Select Button ---
-        const selectBtnBg = this.add.image(320, 220, 'menu_button').setDisplaySize(200, 48);
-        selectBtnBg.setInteractive({ useHandCursor: true });
-
-        const selectText = this.add.text(320, 220, 'LEVEL SELECT', {
+        const selectBtnBg = this.add.image(320, 220, 'btn_select_normal').setDisplaySize(200, 48);
+        const selectText = this.add.text(320, 218, 'LEVEL SELECT', {
             fontSize: '16px',
             fill: '#ffffff',
             fontFamily: 'Courier',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 3
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(202);
 
-        selectBtnBg.on('pointerdown', () => {
+        makeTactileButton(this, selectBtnBg, selectText, 'btn_select_normal', 'btn_select_hover', 'btn_select_pressed', () => {
             try {
                 this.sound.play('buttonclick');
             } catch (e) {
@@ -271,33 +435,21 @@ class MainMenuScene extends Phaser.Scene {
             }
         });
 
-        selectBtnBg.on('pointerover', () => {
-            selectBtnBg.setTint(0x88ccff);
-            selectBtnBg.setAlpha(0.8);
-        });
-
-        selectBtnBg.on('pointerout', () => {
-            selectBtnBg.clearTint();
-            selectBtnBg.setAlpha(1.0);
-        });
-
         // --- Players Toggle Button ---
         this.isTwoPlayer = safeStorage.getItem('CrazyBonk_TwoPlayer') === 'true';
 
-        const modeBtnBg = this.add.image(320, 280, 'menu_button').setDisplaySize(200, 48);
-        modeBtnBg.setInteractive({ useHandCursor: true });
-
+        const modeBtnBg = this.add.image(320, 280, 'btn_players_normal').setDisplaySize(200, 48);
         const getModeText = () => this.isTwoPlayer ? 'PLAYERS: 2 PLAYERS' : 'PLAYERS: 1 PLAYER';
-        const modeText = this.add.text(320, 280, getModeText(), {
-            fontSize: '16px',
+        const modeText = this.add.text(320, 278, getModeText(), {
+            fontSize: '14px',
             fill: '#ffffff',
             fontFamily: 'Courier',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 3
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(202);
 
-        modeBtnBg.on('pointerdown', () => {
+        makeTactileButton(this, modeBtnBg, modeText, 'btn_players_normal', 'btn_players_hover', 'btn_players_pressed', () => {
             try {
                 this.sound.play('buttonclick');
             } catch (e) {
@@ -308,27 +460,18 @@ class MainMenuScene extends Phaser.Scene {
             modeText.setText(getModeText());
         });
 
-        modeBtnBg.on('pointerover', () => {
-            modeBtnBg.setTint(0xffff55);
-            modeBtnBg.setAlpha(0.8);
-        });
-
-        modeBtnBg.on('pointerout', () => {
-            modeBtnBg.clearTint();
-            modeBtnBg.setAlpha(1.0);
-        });
-
         // Fullscreen Toggle Button at top-right
-        const fsBtn = this.add.text(570, 20, '⛶ FULLSCREEN', {
-            fontSize: '12px',
+        const fsBtnBg = this.add.image(575, 20, 'btn_fs_small_normal').setDisplaySize(110, 28).setDepth(201);
+        const fsText = this.add.text(575, 19, '⛶ FULLSCREEN', {
+            fontSize: '10px',
             fill: '#ffffff',
             fontFamily: 'Courier',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(201);
+            strokeThickness: 2
+        }).setOrigin(0.5).setDepth(202);
 
-        fsBtn.on('pointerdown', () => {
+        makeTactileButton(this, fsBtnBg, fsText, 'btn_fs_small_normal', 'btn_fs_small_hover', 'btn_fs_small_pressed', () => {
             try { this.sound.play('buttonclick'); } catch (e) {}
             if (this.scale.isFullscreen) {
                 this.scale.stopFullscreen();
@@ -336,8 +479,6 @@ class MainMenuScene extends Phaser.Scene {
                 this.scale.startFullscreen();
             }
         });
-        fsBtn.on('pointerover', () => { fsBtn.setTint(0x88ff88); });
-        fsBtn.on('pointerout', () => { fsBtn.clearTint(); });
 
         this.input.keyboard.on('keydown-F', () => {
             if (this.scale.isFullscreen) {
@@ -366,8 +507,8 @@ class LevelSelectScene extends Phaser.Scene {
         this.bg.setTileScale(1.40625, 1.40625);
         this.bg.setAlpha(0.35);
 
-        // Frame Panel (using assets/menu/png/Windows.png)
-        this.panel = this.add.image(320, 190, 'menu_panel').setDisplaySize(540, 280);
+        // Frame Panel (Skeuomorphic metal panel)
+        this.panel = this.add.image(320, 190, 'panel_level_select');
 
         // Header Title
         this.add.text(320, 32, 'ZOMBIE INVASION: SELECT LEVEL', {
@@ -380,31 +521,19 @@ class LevelSelectScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Back to Main Menu Button at the bottom
-        const backBtnBg = this.add.image(320, 310, 'menu_button').setDisplaySize(180, 44);
-        backBtnBg.setInteractive({ useHandCursor: true });
-
-        const backText = this.add.text(320, 310, '◄ MENU', {
+        const backBtnBg = this.add.image(320, 310, 'btn_back_normal').setDisplaySize(180, 44);
+        const backText = this.add.text(320, 308, '◄ MENU', {
             fontSize: '15px',
             fill: '#ffffff',
             fontFamily: 'Courier',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 2
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(202);
 
-        backBtnBg.on('pointerdown', () => {
+        makeTactileButton(this, backBtnBg, backText, 'btn_back_normal', 'btn_back_hover', 'btn_back_pressed', () => {
             this.sound.play('buttonclick');
             this.scene.start('MainMenuScene');
-        });
-
-        backBtnBg.on('pointerover', () => {
-            backBtnBg.setTint(0xffaa55);
-            backBtnBg.setAlpha(0.8);
-        });
-
-        backBtnBg.on('pointerout', () => {
-            backBtnBg.clearTint();
-            backBtnBg.setAlpha(1.0);
         });
 
         this.currentTab = 0;
@@ -412,16 +541,17 @@ class LevelSelectScene extends Phaser.Scene {
         this.createLevelButtons();
 
         // Fullscreen Toggle Button at top-right
-        const fsBtn = this.add.text(570, 20, '⛶ FULLSCREEN', {
-            fontSize: '12px',
+        const fsBtnBg = this.add.image(575, 20, 'btn_fs_small_normal').setDisplaySize(110, 28).setDepth(201);
+        const fsText = this.add.text(575, 19, '⛶ FULLSCREEN', {
+            fontSize: '10px',
             fill: '#ffffff',
             fontFamily: 'Courier',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(201);
+            strokeThickness: 2
+        }).setOrigin(0.5).setDepth(202);
 
-        fsBtn.on('pointerdown', () => {
+        makeTactileButton(this, fsBtnBg, fsText, 'btn_fs_small_normal', 'btn_fs_small_hover', 'btn_fs_small_pressed', () => {
             try { this.sound.play('buttonclick'); } catch (e) {}
             if (this.scale.isFullscreen) {
                 this.scale.stopFullscreen();
@@ -429,8 +559,6 @@ class LevelSelectScene extends Phaser.Scene {
                 this.scale.startFullscreen();
             }
         });
-        fsBtn.on('pointerover', () => { fsBtn.setTint(0x88ff88); });
-        fsBtn.on('pointerout', () => { fsBtn.clearTint(); });
 
         this.input.keyboard.on('keydown-F', () => {
             if (this.scale.isFullscreen) {
@@ -443,26 +571,33 @@ class LevelSelectScene extends Phaser.Scene {
     createTabs() {
         const tabs = ['VALLEY (1-12)', 'STEEL (13-25)', 'VAULT (26-38)', 'CASTLE (39-50)'];
         this.tabButtons = [];
+        this.tabBgs = [];
 
         tabs.forEach((tab, index) => {
             const x = 140 + index * 120;
             const y = 72;
-            const btn = this.add.text(x, y, tab, {
-                fontSize: '11px',
-                fill: index === this.currentTab ? '#ffff00' : '#ffffff',
-                backgroundColor: index === this.currentTab ? '#ffffff22' : '#00000044',
+            const isActive = index === this.currentTab;
+            
+            const tabBg = this.add.image(x, y, isActive ? 'tab_active' : 'tab_inactive').setDisplaySize(110, 28);
+            tabBg.setInteractive({ useHandCursor: true });
+            
+            const btn = this.add.text(x, y - 1, tab, {
+                fontSize: '10px',
+                fill: isActive ? '#ffffff' : '#888888',
                 fontFamily: 'Courier',
-                fontStyle: 'bold'
-            })
-                .setOrigin(0.5)
-                .setPadding(6)
-                .setInteractive({ useHandCursor: true })
-                .on('pointerdown', () => {
-                    this.sound.play('buttonclick');
-                    this.currentTab = index;
-                    this.refreshUI();
-                });
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+
+            tabBg.on('pointerdown', () => {
+                this.sound.play('buttonclick');
+                this.currentTab = index;
+                this.refreshUI();
+            });
+
             this.tabButtons.push(btn);
+            this.tabBgs.push(tabBg);
         });
     }
     createLevelButtons() {
@@ -487,69 +622,57 @@ class LevelSelectScene extends Phaser.Scene {
             const y = startY + row * spacingY;
             const isUnlocked = l <= highestLevel;
             const isCompleted = l < highestLevel;
-            let bgColor = '#44444488';
-            let txtColor = '#888888';
+            let normalKey = 'level_btn_locked_normal';
+            let hoverKey = '';
+            let pressedKey = '';
             let label = l.toString() + ' 🔒';
+            let txtColor = '#888888';
+            let textY = y + 1; // depressed grey button offset
+
             if (isUnlocked) {
-                bgColor = isCompleted ? '#ffaa00bb' : '#00aa00bb';
                 txtColor = '#ffffff';
                 label = l.toString() + (isCompleted ? ' ★' : '');
+                textY = y - 2; // raised button offset
+                if (isCompleted) {
+                    normalKey = 'level_btn_completed_normal';
+                    hoverKey = 'level_btn_completed_hover';
+                    pressedKey = 'level_btn_completed_pressed';
+                } else {
+                    normalKey = 'level_btn_unlocked_normal';
+                    hoverKey = 'level_btn_unlocked_hover';
+                    pressedKey = 'level_btn_unlocked_pressed';
+                }
             }
 
-            // Draw visual button background from menu assets
-            const btnBg = this.add.image(x, y, 'menu_button').setDisplaySize(72, 38);
-            if (!isUnlocked) {
-                btnBg.setTint(0x555555);
-            } else {
-                btnBg.setTint(isCompleted ? 0xffcc44 : 0x44ff44);
-            }
+            const btnBg = this.add.image(x, y, normalKey).setDisplaySize(72, 38).setDepth(201);
             this.buttonsGroup.add(btnBg);
 
-            const btn = this.add.text(x, y, label, {
-                fontSize: '15px',
+            const btn = this.add.text(x, textY, label, {
+                fontSize: '14px',
                 fill: txtColor,
-                backgroundColor: bgColor,
                 fontFamily: 'Courier',
                 fontStyle: 'bold',
                 align: 'center',
                 stroke: '#000000',
                 strokeThickness: 2
-            })
-                .setOrigin(0.5)
-                .setPadding(8)
-                .setFixedSize(65, 36);
+            }).setOrigin(0.5).setDepth(202);
+            this.buttonsGroup.add(btn);
 
             if (isUnlocked) {
-                btnBg.setInteractive({ useHandCursor: true });
-                btn.setInteractive({ useHandCursor: true })
-                    .on('pointerdown', () => {
-                        this.sound.play('buttonclick');
-                        this.scene.start('PlatformerScene', { levelId: l });
-                    })
-                    .on('pointerover', () => {
-                        btnBg.setTint(0xffffff);
-                        btnBg.setAlpha(0.8);
-                        btn.setStyle({ fill: '#ffff00', backgroundColor: isCompleted ? '#ff9900' : '#00ff00' });
-                        btn.setAlpha(0.8);
-                    })
-                    .on('pointerout', () => {
-                        btnBg.setTint(isCompleted ? 0xffcc44 : 0x44ff44);
-                        btnBg.setAlpha(1.0);
-                        btn.setStyle({ fill: '#ffffff', backgroundColor: bgColor });
-                        btn.setAlpha(1.0);
-                    });
+                makeTactileButton(this, btnBg, btn, normalKey, hoverKey, pressedKey, () => {
+                    this.sound.play('buttonclick');
+                    this.scene.start('PlatformerScene', { levelId: l });
+                });
             }
-            this.buttonsGroup.add(btn);
+
             index++;
         }
     }
     refreshUI() {
         this.tabButtons.forEach((btn, index) => {
-            if (index === this.currentTab) {
-                btn.setStyle({ fill: '#ffff00', backgroundColor: '#ffffff22' });
-            } else {
-                btn.setStyle({ fill: '#ffffff', backgroundColor: '#00000044' });
-            }
+            const isActive = index === this.currentTab;
+            this.tabBgs[index].setTexture(isActive ? 'tab_active' : 'tab_inactive');
+            btn.setStyle({ fill: isActive ? '#ffffff' : '#888888' });
         });
         this.buttonsGroup.clear(true, true);
         this.createLevelButtons();
@@ -1129,86 +1252,59 @@ class PlatformerScene extends Phaser.Scene {
             });
             if (this.bgMusic) this.bgMusic.pause();
 
-            // Create Pause UI
-            this.pauseOverlay = this.add.rectangle(320, 180, 640, 360, 0x000000, 0.75).setDepth(200);
+            // Create Pause UI (dim overlay and metal console plate)
+            this.pauseOverlay = this.add.rectangle(320, 180, 640, 360, 0x000000, 0.6).setDepth(200);
+            this.pausePanel = this.add.image(320, 180, 'panel_pause').setDepth(200);
 
-            this.pauseTitle = this.add.text(320, 85, 'GAME PAUSED', {
-                fontSize: '28px',
+            this.pauseTitle = this.add.text(320, 48, 'PAUSED', {
+                fontSize: '22px',
                 fill: '#ffff00',
                 fontFamily: 'Courier',
                 fontStyle: 'bold',
                 stroke: '#000000',
-                strokeThickness: 4
+                strokeThickness: 3
             }).setOrigin(0.5).setDepth(201);
 
             // --- Resume Button ---
-            this.resumeBtn = this.add.image(320, 155, 'menu_button').setDisplaySize(180, 44).setDepth(201);
-            this.resumeBtn.setInteractive({ useHandCursor: true });
-            this.resumeText = this.add.text(320, 155, 'RESUME', {
+            this.resumeBtn = this.add.image(320, 110, 'btn_resume_normal').setDisplaySize(180, 44).setDepth(201);
+            this.resumeText = this.add.text(320, 108, 'RESUME', {
                 fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
-            }).setOrigin(0.5).setDepth(201);
+            }).setOrigin(0.5).setDepth(202);
 
-            this.resumeBtn.on('pointerdown', () => {
+            makeTactileButton(this, this.resumeBtn, this.resumeText, 'btn_resume_normal', 'btn_resume_hover', 'btn_resume_pressed', () => {
                 this.sound.play('buttonclick');
                 this.togglePause();
             });
-            this.resumeBtn.on('pointerover', () => {
-                this.resumeBtn.setTint(0x88ff88);
-                this.resumeBtn.setAlpha(0.8);
-            });
-            this.resumeBtn.on('pointerout', () => {
-                this.resumeBtn.clearTint();
-                this.resumeBtn.setAlpha(1.0);
-            });
 
             // --- Level Select Button ---
-            this.lvlSelectBtn = this.add.image(320, 215, 'menu_button').setDisplaySize(180, 44).setDepth(201);
-            this.lvlSelectBtn.setInteractive({ useHandCursor: true });
-            this.lvlSelectText = this.add.text(320, 215, 'LEVEL SELECT', {
+            this.lvlSelectBtn = this.add.image(320, 170, 'btn_lvlselect_normal').setDisplaySize(180, 44).setDepth(201);
+            this.lvlSelectText = this.add.text(320, 168, 'LEVEL SELECT', {
                 fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
-            }).setOrigin(0.5).setDepth(201);
+            }).setOrigin(0.5).setDepth(202);
 
-            this.lvlSelectBtn.on('pointerdown', () => {
+            makeTactileButton(this, this.lvlSelectBtn, this.lvlSelectText, 'btn_lvlselect_normal', 'btn_lvlselect_hover', 'btn_lvlselect_pressed', () => {
                 this.sound.play('buttonclick');
                 this.scene.start('LevelSelectScene');
             });
-            this.lvlSelectBtn.on('pointerover', () => {
-                this.lvlSelectBtn.setTint(0x88ccff);
-                this.lvlSelectBtn.setAlpha(0.8);
-            });
-            this.lvlSelectBtn.on('pointerout', () => {
-                this.lvlSelectBtn.clearTint();
-                this.lvlSelectBtn.setAlpha(1.0);
-            });
 
             // --- Main Menu Button ---
-            this.mainMenuBtn = this.add.image(320, 275, 'menu_button').setDisplaySize(180, 44).setDepth(201);
-            this.mainMenuBtn.setInteractive({ useHandCursor: true });
-            this.mainMenuText = this.add.text(320, 275, 'MAIN MENU', {
+            this.mainMenuBtn = this.add.image(320, 230, 'btn_back_normal').setDisplaySize(180, 44).setDepth(201);
+            this.mainMenuText = this.add.text(320, 228, 'MAIN MENU', {
                 fontSize: '15px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
-            }).setOrigin(0.5).setDepth(201);
+            }).setOrigin(0.5).setDepth(202);
 
-            this.mainMenuBtn.on('pointerdown', () => {
+            makeTactileButton(this, this.mainMenuBtn, this.mainMenuText, 'btn_back_normal', 'btn_back_hover', 'btn_back_pressed', () => {
                 this.sound.play('buttonclick');
                 this.scene.start('MainMenuScene');
             });
-            this.mainMenuBtn.on('pointerover', () => {
-                this.mainMenuBtn.setTint(0xffaa55);
-                this.mainMenuBtn.setAlpha(0.8);
-            });
-            this.mainMenuBtn.on('pointerout', () => {
-                this.mainMenuBtn.clearTint();
-                this.mainMenuBtn.setAlpha(1.0);
-            });
 
             // --- Fullscreen Button ---
-            this.fsBtn = this.add.image(320, 330, 'menu_button').setDisplaySize(180, 44).setDepth(201);
-            this.fsBtn.setInteractive({ useHandCursor: true });
-            this.fsText = this.add.text(320, 330, '⛶ FULLSCREEN', {
+            this.fsBtn = this.add.image(320, 290, 'btn_fullscreen_normal').setDisplaySize(180, 44).setDepth(201);
+            this.fsText = this.add.text(320, 288, '⛶ FULLSCREEN', {
                 fontSize: '14px', fill: '#ffffff', fontFamily: 'Courier', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2
-            }).setOrigin(0.5).setDepth(201);
+            }).setOrigin(0.5).setDepth(202);
 
-            this.fsBtn.on('pointerdown', () => {
+            makeTactileButton(this, this.fsBtn, this.fsText, 'btn_fullscreen_normal', 'btn_fullscreen_hover', 'btn_fullscreen_pressed', () => {
                 try { this.sound.play('buttonclick'); } catch (e) {}
                 if (this.scale.isFullscreen) {
                     this.scale.stopFullscreen();
@@ -1216,19 +1312,12 @@ class PlatformerScene extends Phaser.Scene {
                     this.scale.startFullscreen();
                 }
             });
-            this.fsBtn.on('pointerover', () => {
-                this.fsBtn.setTint(0x88ff88);
-                this.fsBtn.setAlpha(0.8);
-            });
-            this.fsBtn.on('pointerout', () => {
-                this.fsBtn.clearTint();
-                this.fsBtn.setAlpha(1.0);
-            });
         } else {
             this.isPaused = false;
 
             // Clean up UI
             this.pauseOverlay.destroy();
+            this.pausePanel.destroy();
             this.pauseTitle.destroy();
             this.resumeBtn.destroy();
             this.resumeText.destroy();

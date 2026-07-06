@@ -866,8 +866,9 @@ class PlatformerScene extends Phaser.Scene {
             scale: { start: 1.5, end: 0 },
             alpha: { start: 1, end: 0 },
             frequency: -1,
-            blendMode: 'ADD'
-        }).setTint(0xff5500);
+            blendMode: 'ADD',
+            tint: 0xff5500
+        });
 
         // --- Enable Dynamic Lighting ---
         this.lights.enable();

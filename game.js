@@ -178,6 +178,71 @@ function generateSkeuomorphicTextures(scene) {
     // Tab buttons
     drawButton('tab_active', 110, 28, 'yellow', false, false);
     drawButton('tab_inactive', 110, 28, 'grey', true, false);
+
+    // Generate Particle Textures (blurred circles)
+    const drawParticle = (key, radius, color) => {
+        let g = scene.make.graphics({ x: 0, y: 0, add: false });
+        g.fillStyle(color, 1.0);
+        g.fillCircle(radius, radius, radius);
+        g.generateTexture(key, radius * 2, radius * 2);
+        g.destroy();
+    };
+    drawParticle('dust_particle', 4, 0xffffff);
+    drawParticle('sparkle_particle', 3, 0xffcc00);
+
+    // Generate HUD Panel Background (brushed-metal plaque with screw bolts)
+    const drawHudPanel = (key, w, h) => {
+        let g = scene.make.graphics({ x: 0, y: 0, add: false });
+        g.fillStyle(0x1a1d24, 0.95);
+        g.fillRoundedRect(0, 0, w, h, 4);
+        
+        g.lineStyle(1.5, 0x494e57, 0.7); // Top/Left highlight bevel
+        g.lineBetween(0, 0, w, 0);
+        g.lineBetween(0, 0, 0, h);
+        g.lineStyle(1.5, 0x0a0c0e, 0.9); // Bottom/Right shadow bevel
+        g.lineBetween(0, h, w, h);
+        g.lineBetween(w, 0, w, h);
+        
+        const drawScrew = (x, y) => {
+            g.fillStyle(0x3e4451, 1.0);
+            g.fillCircle(x, y, 3);
+            g.lineStyle(1, 0x090b0e, 1.0);
+            g.strokeCircle(x, y, 3);
+        };
+        drawScrew(8, h / 2);
+        drawScrew(w - 8, h / 2);
+        
+        g.generateTexture(key, w, h);
+        g.destroy();
+    };
+    drawHudPanel('hud_panel', 160, 32);
+
+    // Generate HUD Heart (glossy 3D red heart)
+    const drawHeart = (key, isActive) => {
+        let g = scene.make.graphics({ x: 0, y: 0, add: false });
+        let color = isActive ? 0xff3333 : 0x2c302e;
+        
+        g.fillStyle(color, 1.0);
+        g.fillCircle(5, 5, 5);
+        g.fillCircle(13, 5, 5);
+        
+        g.beginPath();
+        g.moveTo(0.5, 6);
+        g.lineTo(9, 17);
+        g.lineTo(17.5, 6);
+        g.closePath();
+        g.fill();
+        
+        if (isActive) {
+            g.fillStyle(0xffffff, 0.5);
+            g.fillCircle(3.5, 3.5, 1.5);
+        }
+        
+        g.generateTexture(key, 18, 18);
+        g.destroy();
+    };
+    drawHeart('hud_heart_active', true);
+    drawHeart('hud_heart_empty', false);
 }
 
 function makeTactileButton(scene, imageObj, textObj, normalKey, hoverKey, pressedKey, callback) {
@@ -704,38 +769,47 @@ class PlatformerScene extends Phaser.Scene {
         this.isInvulnerable = false;
         this.lives = 5;
         this.score = 0;
-        this.scoreText = this.add.text(16, 16, 'SCORE: 0', {
-            fontSize: '22px',
+        // Score Panel on top-left
+        this.scorePanelBg = this.add.image(95, 32, 'hud_panel').setDisplaySize(160, 32).setDepth(100);
+        this.scoreText = this.add.text(95, 31, 'SCORE: 0', {
+            fontSize: '13px',
             fill: '#ffffff',
             fontFamily: 'Courier',
-            fontStyle: 'bold'
-        });
-        this.scoreText.setDepth(100);
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setDepth(101);
+
         // Target Kills progress indicator in top center
-        this.progressText = this.add.text(320, 20, `KILLS: 0 / ${this.levelConfig.targetKills}`, {
-            fontSize: '22px',
+        this.killsPanelBg = this.add.image(320, 32, 'hud_panel').setDisplaySize(160, 32).setDepth(100);
+        this.progressText = this.add.text(320, 31, `KILLS: 0 / ${this.levelConfig.targetKills}`, {
+            fontSize: '13px',
             fill: '#ffff00',
             fontFamily: 'Courier',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        this.progressText.setDepth(100);
-        // Lives indicator on top-right
-        this.livesText = this.add.text(624, 16, 'LIVES: ❤️❤️❤️❤️❤️', {
-            fontSize: '22px',
-            fill: '#ff3333',
-            fontFamily: 'Courier',
-            fontStyle: 'bold'
-        });
-        this.livesText.setOrigin(1, 0);
-        this.livesText.setDepth(100);
-        // Display current level details
-        this.worldNameText = this.add.text(16, 44, `${this.levelConfig.worldName} - Level ${this.currentLevelId}`, {
-            fontSize: '13px',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setDepth(101);
+
+        // Lives indicator on top-right (glowing heart sprites)
+        this.livesPanelBg = this.add.image(545, 32, 'hud_panel').setDisplaySize(160, 32).setDepth(100);
+        this.heartsList = [];
+        for (let i = 0; i < 5; i++) {
+            const hX = 545 - 36 + i * 18;
+            const hY = 32;
+            const heartImg = this.add.image(hX, hY, 'hud_heart_active').setDepth(101);
+            this.heartsList.push(heartImg);
+        }
+
+        // Display current level details below score panel
+        this.worldNameText = this.add.text(95, 58, `${this.levelConfig.worldName} - Level ${this.currentLevelId}`, {
+            fontSize: '11px',
             fill: '#88ccff',
             fontFamily: 'Courier',
-            fontStyle: 'bold'
-        });
-        this.worldNameText.setDepth(100);
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setDepth(101);
         // --- Register Animations ---
         const createAnim = (key, prefix, count, frameRate, repeat = -1) => {
             if (!this.anims.exists(key)) {
@@ -767,8 +841,51 @@ class PlatformerScene extends Phaser.Scene {
         // Initialize coin dynamic group
         this.coins = this.physics.add.group();
 
+        // --- Particle Emitter Setup ---
+        this.dustEmitter = this.add.particles(0, 0, 'dust_particle', {
+            lifespan: { min: 200, max: 400 },
+            speed: { min: 10, max: 60 },
+            scale: { start: 1, end: 0 },
+            alpha: { start: 0.5, end: 0 },
+            frequency: -1, // manual emit only
+            blendMode: 'ADD'
+        });
+        
+        this.sparkleEmitter = this.add.particles(0, 0, 'sparkle_particle', {
+            lifespan: { min: 300, max: 500 },
+            speed: { min: 30, max: 80 },
+            scale: { start: 1.2, end: 0.2 },
+            alpha: { start: 0.8, end: 0 },
+            frequency: -1,
+            blendMode: 'ADD'
+        });
+
+        this.emberEmitter = this.add.particles(0, 0, 'sparkle_particle', {
+            lifespan: { min: 400, max: 600 },
+            speed: { min: 50, max: 150 },
+            scale: { start: 1.5, end: 0 },
+            alpha: { start: 1, end: 0 },
+            frequency: -1,
+            blendMode: 'ADD'
+        }).setTint(0xff5500);
+
+        // --- Enable Dynamic Lighting ---
+        this.lights.enable();
+        this.lights.setAmbientColor(0x1a1a2b);
+
         this.createLevel();
         this.createPlayer();
+        
+        // Attach lighting to player 1
+        this.player.light = this.lights.addLight(this.player.x, this.player.y, 160, 0xffffff, 1.2);
+        if (this.isTwoPlayer && this.player2) {
+            this.player2.light = this.lights.addLight(this.player2.x, this.player2.y, 160, 0xffffff, 1.2);
+        }
+
+        // Add lights at spawn points
+        this.lights.addLight(40, 30, 80, 0xff3333, 1.0);
+        this.lights.addLight(600, 30, 80, 0xff3333, 1.0);
+
         this.createEnemies();
         this.setupCollisions();
         this.setupInput();
@@ -800,17 +917,17 @@ class PlatformerScene extends Phaser.Scene {
         console.log(`Game Log: Launching Level ${this.currentLevelId} (Max Run: ${highestLvl})`);
         this.saveLevelRecord(this.currentLevelId);
         // Tiled Background
-        this.bg = this.add.tileSprite(320, 180, 640, 360, levelConfig.bgKey);
+        this.bg = this.add.tileSprite(320, 180, 640, 360, levelConfig.bgKey).setPipeline('Light2D');
         this.bg.setTileScale(1.40625, 1.40625);
         this.bg.setDepth(-10);
         // Tiled ground floor
-        this.floor = this.add.tileSprite(320, 340, 640, 40, levelConfig.tileKey);
+        this.floor = this.add.tileSprite(320, 340, 640, 40, levelConfig.tileKey).setPipeline('Light2D');
         this.floor.setTileScale(0.15625, 0.15625);
         this.physics.add.existing(this.floor, true);
         this.floor.body.setSize(640, 40);
         this.platforms = this.physics.add.staticGroup();
         levelConfig.platforms.forEach((p, index) => {
-            const plat = this.add.tileSprite(p.x, p.y, p.w, p.h, levelConfig.tileKey);
+            const plat = this.add.tileSprite(p.x, p.y, p.w, p.h, levelConfig.tileKey).setPipeline('Light2D');
             plat.setTileScale(0.0625, 0.0625);
             this.platforms.add(plat);
             plat.body.setSize(p.w, p.h);
@@ -826,7 +943,7 @@ class PlatformerScene extends Phaser.Scene {
         this.tntBlocks = this.physics.add.staticGroup();
         if (levelConfig.tntBlocks) {
             levelConfig.tntBlocks.forEach(t => {
-                const tnt = this.add.sprite(t.x, t.y, 'barrel');
+                const tnt = this.add.sprite(t.x, t.y, 'barrel').setPipeline('Light2D');
                 tnt.setDisplaySize(t.w, t.h + 8);
                 this.tntBlocks.add(tnt);
                 tnt.body.setSize(t.w, 16);
@@ -841,7 +958,7 @@ class PlatformerScene extends Phaser.Scene {
 
         // Spawn Player 1
         const p1X = this.isTwoPlayer ? 240 : 320;
-        this.player = this.physics.add.sprite(p1X, 300, 'hero_idle_1');
+        this.player = this.physics.add.sprite(p1X, 300, 'hero_idle_1').setPipeline('Light2D');
         this.player.setScale(0.1);
         this.player.body.setSize(320, 480);
         this.player.body.setOffset(174, 89);
@@ -853,7 +970,7 @@ class PlatformerScene extends Phaser.Scene {
 
         // Spawn Player 2 if enabled
         if (this.isTwoPlayer) {
-            this.player2 = this.physics.add.sprite(400, 300, 'hero2_idle_1');
+            this.player2 = this.physics.add.sprite(400, 300, 'hero2_idle_1').setPipeline('Light2D');
             this.player2.setScale(0.1);
             this.player2.body.setSize(320, 480);
             this.player2.body.setOffset(174, 89);
@@ -892,7 +1009,7 @@ class PlatformerScene extends Phaser.Scene {
     spawnEnemy(x, y) {
         this.totalSpawnsCount++;
         const gender = Math.random() > 0.5 ? 'male' : 'female';
-        const enemy = this.physics.add.sprite(x, y, `enemy_${gender}_idle_1`);
+        const enemy = this.physics.add.sprite(x, y, `enemy_${gender}_idle_1`).setPipeline('Light2D');
         enemy.gender = gender;
         enemy.setScale(0.08);
         // Custom 24x24 box aligned at enemy feet
@@ -1001,7 +1118,12 @@ class PlatformerScene extends Phaser.Scene {
             const bounceDir = playerSprite.x < enemy.x ? -1 : 1;
             playerSprite.body.setVelocityX(bounceDir * 300);
             playerSprite.body.setVelocityY(-350);
-            this.cameras.main.shake(100, 0.005);
+            // Strong camera shake and red damage flash
+            this.cameras.main.shake(200, 0.02);
+            playerSprite.setTint(0xff3333);
+            this.time.delayedCall(150, () => {
+                if (playerSprite && playerSprite.active) playerSprite.clearTint();
+            });
             this.tweens.add({
                 targets: playerSprite,
                 alpha: 0.3,
@@ -1020,9 +1142,14 @@ class PlatformerScene extends Phaser.Scene {
         }
     }
     updateLivesText() {
-        if (this.livesText) {
-            const hearts = this.lives > 0 ? '❤️'.repeat(this.lives) : '💀';
-            this.livesText.setText(`LIVES: ${hearts}`);
+        if (this.heartsList) {
+            this.heartsList.forEach((heartImg, index) => {
+                if (index < this.lives) {
+                    heartImg.setTexture('hud_heart_active');
+                } else {
+                    heartImg.setTexture('hud_heart_empty');
+                }
+            });
         }
     }
     collectCoin(playerSprite, coin, isPlayer2) {
@@ -1033,6 +1160,13 @@ class PlatformerScene extends Phaser.Scene {
             return;
         }
 
+        // Emit golden sparkles and clean up coin spotlight
+        if (this.sparkleEmitter) {
+            this.sparkleEmitter.emitParticleAt(coin.x, coin.y, 12);
+        }
+        if (coin.light) {
+            this.lights.removeLight(coin.light);
+        }
         coin.destroy();
         this.sound.play('coin', { volume: 0.6 });
 
@@ -1228,6 +1362,46 @@ class PlatformerScene extends Phaser.Scene {
         }
 
         if (this.isPaused || this.isGameOver || this.isLevelComplete) return;
+
+        // --- Landing Dust & Player Spotlights ---
+        if (this.player && this.player.active) {
+            if (this.player.light) {
+                this.player.light.x = this.player.x;
+                this.player.light.y = this.player.y;
+            }
+            const isGroundedNow1 = this.player.body.blocked.down || this.player.body.touching.down;
+            if (isGroundedNow1 && !this.player.wasGrounded && this.player.body.velocity.y === 0) {
+                if (this.dustEmitter) {
+                    this.dustEmitter.emitParticleAt(this.player.x, this.player.body.bottom, 6);
+                }
+            }
+            this.player.wasGrounded = isGroundedNow1;
+        }
+
+        if (this.isTwoPlayer && this.player2 && this.player2.active) {
+            if (this.player2.light) {
+                this.player2.light.x = this.player2.x;
+                this.player2.light.y = this.player2.y;
+            }
+            const isGroundedNow2 = this.player2.body.blocked.down || this.player2.body.touching.down;
+            if (isGroundedNow2 && !this.player2.wasGrounded && this.player2.body.velocity.y === 0) {
+                if (this.dustEmitter) {
+                    this.dustEmitter.emitParticleAt(this.player2.x, this.player2.body.bottom, 6);
+                }
+            }
+            this.player2.wasGrounded = isGroundedNow2;
+        }
+
+        // --- Coin Lights Tracking ---
+        if (this.coins) {
+            this.coins.children.iterate((coin) => {
+                if (coin && coin.active && coin.light) {
+                    coin.light.x = coin.x;
+                    coin.light.y = coin.y;
+                }
+            });
+        }
+
         this.handlePlayerMovement();
         this.updatePlayerAnimations();
         this.checkBonkMechanic();
@@ -1471,6 +1645,9 @@ class PlatformerScene extends Phaser.Scene {
             this.player.body.setVelocityY(this.JUMP_VELOCITY);
             this.isJumping = true;
             this.sound.play('jump', { volume: 0.5 });
+            if (this.dustEmitter) {
+                this.dustEmitter.emitParticleAt(this.player.x, this.player.body.bottom, 6);
+            }
         }
         if (this.wasd.up.isUp && this.isJumping && this.player.body.velocity.y < 0) {
             this.player.body.setVelocityY(this.player.body.velocity.y * 0.5);
@@ -1498,6 +1675,9 @@ class PlatformerScene extends Phaser.Scene {
                 this.player2.body.setVelocityY(this.JUMP_VELOCITY);
                 this.isJumping2 = true;
                 this.sound.play('jump', { volume: 0.5 });
+                if (this.dustEmitter) {
+                    this.dustEmitter.emitParticleAt(this.player2.x, this.player2.body.bottom, 6);
+                }
             }
             if (this.cursors.up.isUp && this.isJumping2 && this.player2.body.velocity.y < 0) {
                 this.player2.body.setVelocityY(this.player2.body.velocity.y * 0.5);
@@ -1559,7 +1739,10 @@ class PlatformerScene extends Phaser.Scene {
             duration: 500,
             onComplete: () => shockwave.destroy()
         });
-        this.cameras.main.shake(120, 0.01);
+        if (this.emberEmitter) {
+            this.emberEmitter.emitParticleAt(tntBlock.x, tntBlock.y, 20);
+        }
+        this.cameras.main.shake(200, 0.015);
         // Stun active patrolling enemies on every hit
         this.enemies.children.iterate((enemy) => {
             if (enemy && enemy.active && !enemy.isStunned && !enemy.isKicked) {
@@ -1591,7 +1774,10 @@ class PlatformerScene extends Phaser.Scene {
                 duration: 700,
                 onComplete: () => finalShockwave.destroy()
             });
-            this.cameras.main.shake(200, 0.02);
+            if (this.emberEmitter) {
+                this.emberEmitter.emitParticleAt(tntBlock.x, tntBlock.y, 50);
+            }
+            this.cameras.main.shake(400, 0.04);
             tntBlock.destroy();
         }
     }
@@ -1615,9 +1801,12 @@ class PlatformerScene extends Phaser.Scene {
             platform.hasCoin = false;
             platform.setTint(0x888888); // Spent platforms color fade
 
-            const coin = this.coins.create(platform.x, platform.body.top - 20, 'coin');
+            const coin = this.coins.create(platform.x, platform.body.top - 20, 'coin').setPipeline('Light2D');
             coin.setScale(0.005);
             coin.body.setCollideWorldBounds(true);
+            
+            // Attach glowing golden light
+            coin.light = this.lights.addLight(coin.x, coin.y, 50, 0xffcc00, 1.2);
             coin.body.setBounce(0.3);
             coin.body.setGravityY(1000);
             coin.body.setVelocityY(-400); // Pop upward

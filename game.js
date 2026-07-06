@@ -877,11 +877,12 @@ class PlatformerScene extends Phaser.Scene {
         this.createLevel();
         this.createPlayer();
         
-        // Attach lighting to player 1
-        this.player.light = this.lights.addLight(this.player.x, this.player.y, 160, 0xffffff, 1.2);
-        if (this.isTwoPlayer && this.player2) {
-            this.player2.light = this.lights.addLight(this.player2.x, this.player2.y, 160, 0xffffff, 1.2);
-        }
+        // Add static lights in the map layout (X pattern to cast moody shadows)
+        this.lights.addLight(160, 100, 150, 0xffeebb, 1.2);
+        this.lights.addLight(480, 100, 150, 0xffeebb, 1.2);
+        this.lights.addLight(320, 200, 160, 0xffeebb, 1.2);
+        this.lights.addLight(160, 300, 150, 0xffeebb, 1.2);
+        this.lights.addLight(480, 300, 150, 0xffeebb, 1.2);
 
         // Add lights at spawn points
         this.lights.addLight(40, 30, 80, 0xff3333, 1.0);
@@ -1364,12 +1365,8 @@ class PlatformerScene extends Phaser.Scene {
 
         if (this.isPaused || this.isGameOver || this.isLevelComplete) return;
 
-        // --- Landing Dust & Player Spotlights ---
+        // --- Landing Dust ---
         if (this.player && this.player.active) {
-            if (this.player.light) {
-                this.player.light.x = this.player.x;
-                this.player.light.y = this.player.y;
-            }
             const isGroundedNow1 = this.player.body.blocked.down || this.player.body.touching.down;
             if (isGroundedNow1 && !this.player.wasGrounded && this.player.body.velocity.y === 0) {
                 if (this.dustEmitter) {
@@ -1380,10 +1377,6 @@ class PlatformerScene extends Phaser.Scene {
         }
 
         if (this.isTwoPlayer && this.player2 && this.player2.active) {
-            if (this.player2.light) {
-                this.player2.light.x = this.player2.x;
-                this.player2.light.y = this.player2.y;
-            }
             const isGroundedNow2 = this.player2.body.blocked.down || this.player2.body.touching.down;
             if (isGroundedNow2 && !this.player2.wasGrounded && this.player2.body.velocity.y === 0) {
                 if (this.dustEmitter) {

@@ -362,9 +362,9 @@ class MainMenuScene extends Phaser.Scene {
         this.load.audio('tntexplosion', 'sounds/tntexplosion.wav');
         this.load.audio('wasted', 'sounds/wasted.mp3');
         
-        for (let i = 1; i <= 5; i++) {
-            this.load.audio(`bgmusic${i}`, `sounds/bgmusic${i}.mp3`);
-        }
+        // Preload only one random bgmusic track to optimize download size & loading time
+        const selectedMusic = Phaser.Math.Between(1, 5);
+        this.load.audio('bgmusic_active', `sounds/bgmusic${selectedMusic}.mp3`);
 
         // --- Load Gameplay & Environment Assets ---
         this.load.image('bg_tile_1', 'assets/totalassets/png/Tiles/BGTile (1).png');
@@ -892,9 +892,8 @@ class PlatformerScene extends Phaser.Scene {
         this.setupCollisions();
         this.setupInput();
 
-        // Select and play a random bgmusic track
-        this.bgMusicKey = 'bgmusic' + Phaser.Math.Between(1, 5);
-        this.bgMusic = this.sound.add(this.bgMusicKey, { loop: true, volume: 0.25 });
+        // Play the preloaded background music track
+        this.bgMusic = this.sound.add('bgmusic_active', { loop: true, volume: 0.25 });
         this.bgMusic.play();
 
         // Handle scene shutdown to clean up looping music
